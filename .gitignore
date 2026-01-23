@@ -1,0 +1,47 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### 临时文档 ###
+*_guide.md
+*_GUIDE.md
+*_fix.md
+*_FIX.md
+404_fix_guide.md
+CLEAR_CACHE_GUIDE.md
+REGISTER_FIX.md
+
+### 前端 ###
+frontend/node_modules/
+frontend/dist/
+frontend/.vscode/
