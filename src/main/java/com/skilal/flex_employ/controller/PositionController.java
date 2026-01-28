@@ -18,8 +18,9 @@ public class PositionController {
     @GetMapping
     public Result<List<Position>> getPositions(@RequestParam(required = false) String positionName,
             @RequestParam(required = false) String workLocation,
+            @RequestParam(required = false) String employmentType,
             @RequestParam(required = false) Integer positionStatus) {
-        List<Position> positions = positionMapper.findAll(positionName, workLocation, positionStatus);
+        List<Position> positions = positionMapper.findAll(positionName, workLocation, employmentType, positionStatus);
         return Result.success(positions);
     }
 

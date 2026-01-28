@@ -7,12 +7,23 @@
           <el-date-picker
             v-model="searchForm.attendanceDate"
             type="date"
-            placeholder="选择日期"
+            placeholder="考勤日期"
             value-format="YYYY-MM-DD"
+            clearable
+            @change="handleSearch"
+            @clear="handleSearch"
+            style="width: 200px"
           />
         </el-form-item>
         <el-form-item label="考勤状态">
-          <el-select v-model="searchForm.attendanceStatus" placeholder="请选择" clearable>
+          <el-select 
+            v-model="searchForm.attendanceStatus" 
+            placeholder="考勤状态" 
+            clearable
+            @change="handleSearch"
+            @clear="handleSearch"
+            style="width: 150px"
+          >
             <el-option label="正常" value="正常" />
             <el-option label="迟到" value="迟到" />
             <el-option label="早退" value="早退" />
@@ -21,7 +32,6 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -184,13 +194,19 @@ const loadData = async () => {
   loading.value = true
   try {
     const params = {
-      page: currentPage.value,
-      size: pageSize.value,
-      ...searchForm
+      attendanceDate: searchForm.attendanceDate || undefined,
+      attendanceStatus: searchForm.attendanceStatus || undefined
     }
+    
     const res = await getAttendances(params)
-    tableData.value = res.data.records || res.data
-    total.value = res.data.total || 0
+    
+    // 客户端分页
+    const allData = res.data || []
+    total.value = allData.length
+    
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    tableData.value = allData.slice(start, end)
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')

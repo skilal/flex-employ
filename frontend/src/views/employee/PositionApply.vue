@@ -4,20 +4,46 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="岗位名称">
-          <el-input v-model="searchForm.positionName" placeholder="请输入岗位名称" clearable />
+          <el-input 
+            v-model="searchForm.positionName" 
+            placeholder="请输入岗位名称" 
+            clearable
+            @clear="handleSearch"
+            style="width: 200px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="工作地点">
-          <el-input v-model="searchForm.workLocation" placeholder="请输入工作地点" clearable />
+          <el-input 
+            v-model="searchForm.workLocation" 
+            placeholder="请输入工作地点" 
+            clearable
+            @clear="handleSearch"
+            style="width: 200px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="用工类型">
-          <el-select v-model="searchForm.employmentType" placeholder="请选择" clearable>
+          <el-select 
+            v-model="searchForm.employmentType" 
+            placeholder="用工类型" 
+            clearable
+            @change="handleSearch"
+            @clear="handleSearch"
+            style="width: 150px"
+          >
             <el-option label="兼职" value="兼职" />
             <el-option label="全职" value="全职" />
             <el-option label="临时工" value="临时工" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -122,6 +148,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { getRecruitingPositions } from '../../api/position'
 import { getMyApplications, createApplication } from '../../api/application'
 import { useUserStore } from '../../stores/user'
@@ -162,14 +189,33 @@ const applyRules = {
 const loadPositions = async () => {
   loading.value = true
   try {
-    const params = {
-      page: currentPage.value,
-      size: pageSize.value,
-      ...searchForm
+    // 招聘中岗位不需要查询参数，后端已经筛选了status=1
+    const res = await getRecruitingPositions()
+    
+    // 客户端分页和筛选
+    let allData = res.data || []
+    
+    // 前端筛选
+    if (searchForm.positionName) {
+      allData = allData.filter(item => 
+        item.positionName && item.positionName.includes(searchForm.positionName)
+      )
     }
-    const res = await getRecruitingPositions(params)
-    tableData.value = res.data.records || res.data
-    total.value = res.data.total || 0
+    if (searchForm.workLocation) {
+      allData = allData.filter(item => 
+        item.workLocation && item.workLocation.includes(searchForm.workLocation)
+      )
+    }
+    if (searchForm.employmentType) {
+      allData = allData.filter(item => item.employmentType === searchForm.employmentType)
+    }
+    
+    total.value = allData.length
+    
+    // 客户端分页
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    tableData.value = allData.slice(start, end)
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')

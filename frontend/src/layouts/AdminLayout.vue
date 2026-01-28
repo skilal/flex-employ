@@ -36,6 +36,10 @@
           <el-icon><Coin /></el-icon>
           <span>薪资管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/companies">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>合作公司管理</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     
@@ -62,6 +66,7 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
+import { Document, List, User, Calendar, Clock, Coin, OfficeBuilding } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -78,7 +83,8 @@ const pageTitle = computed(() => {
     '/admin/workers': '在岗员工管理',
     '/admin/leaves': '请假管理',
     '/admin/attendance': '考勤记录管理',
-    '/admin/salary': '薪资管理'
+    '/admin/salary': '薪资管理',
+    '/admin/companies': '合作公司管理'
   }
   return titleMap[route.path] || '管理后台'
 })

@@ -24,6 +24,10 @@ public class Position {
     private Integer positionStatus;
     private Long responsibleId;
     private String specialNote;
+
+    // 公司名称（不存储在数据库，由查询join获取）
+    private transient String companyName;
+
     private LocalDateTime createdAt;
     private Long creatorId;
 }

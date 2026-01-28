@@ -4,14 +4,20 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="申请状态">
-          <el-select v-model="searchForm.status" placeholder="请选择" clearable>
+          <el-select 
+            v-model="searchForm.status" 
+            placeholder="申请状态" 
+            clearable
+            @change="handleSearch"
+            @clear="handleSearch"
+            style="width: 150px"
+          >
             <el-option label="已申请" value="已申请" />
             <el-option label="已通过" value="已通过" />
             <el-option label="已拒绝" value="已拒绝" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -98,13 +104,18 @@ const loadData = async () => {
   loading.value = true
   try {
     const params = {
-      page: currentPage.value,
-      size: pageSize.value,
-      ...searchForm
+      status: searchForm.status || undefined
     }
+    
     const res = await getApplications(params)
-    tableData.value = res.data.records || res.data
-    total.value = res.data.total || 0
+    
+    // 客户端分页
+    const allData = res.data || []
+    total.value = allData.length
+    
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    tableData.value = allData.slice(start, end)
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')

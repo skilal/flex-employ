@@ -4,13 +4,19 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="员工状态">
-          <el-select v-model="searchForm.workerStatus" placeholder="请选择" clearable>
+          <el-select 
+            v-model="searchForm.workerStatus" 
+            placeholder="员工状态" 
+            clearable
+            @change="handleSearch"
+            @clear="handleSearch"
+            style="width: 150px"
+          >
             <el-option label="在岗" value="在岗" />
-            <el-option label="离职" value="离职" />
+            <el-option label="已结束" value="已结束" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -37,7 +43,7 @@
         <el-table-column prop="workerStatus" label="员工状态" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.workerStatus === '在岗'" type="success">在岗</el-tag>
-            <el-tag v-else type="info">离职</el-tag>
+            <el-tag v-else type="info">已结束</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
@@ -123,7 +129,7 @@
         <el-form-item label="员工状态" prop="workerStatus">
           <el-select v-model="form.workerStatus" placeholder="请选择" style="width: 100%">
             <el-option label="在岗" value="在岗" />
-            <el-option label="离职" value="离职" />
+            <el-option label="已结束" value="已结束" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -178,13 +184,18 @@ const loadData = async () => {
   loading.value = true
   try {
     const params = {
-      page: currentPage.value,
-      size: pageSize.value,
-      ...searchForm
+      workerStatus: searchForm.workerStatus || undefined
     }
+    
     const res = await getWorkers(params)
-    tableData.value = res.data.records || res.data
-    total.value = res.data.total || 0
+    
+    // 客户端分页
+    const allData = res.data || []
+    total.value = allData.length
+    
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    tableData.value = allData.slice(start, end)
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')

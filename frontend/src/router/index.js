@@ -58,6 +58,11 @@ const routes = [
                 path: 'salary',
                 name: 'AdminSalary',
                 component: () => import('../views/admin/SalaryManagement.vue')
+            },
+            {
+                path: 'companies',
+                name: 'AdminCompanies',
+                component: () => import('../views/admin/CompanyManagement.vue')
             }
         ]
     },
