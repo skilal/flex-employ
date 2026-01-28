@@ -20,8 +20,10 @@ public class WorkerController {
     private JwtUtil jwtUtil;
 
     @GetMapping
-    public Result<List<OnDutyWorker>> getWorkers(@RequestParam(required = false) String workerStatus) {
-        List<OnDutyWorker> workers = workerMapper.findAll(workerStatus);
+    public Result<List<OnDutyWorker>> getWorkers(@RequestParam(required = false) String workerStatus,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String positionName) {
+        List<OnDutyWorker> workers = workerMapper.findAll(workerStatus, userName, positionName);
         return Result.success(workers);
     }
 

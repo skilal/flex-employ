@@ -3,13 +3,35 @@
     <!-- 搜索栏 -->
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
+        <el-form-item label="用户名称">
+          <el-input 
+            v-model="searchForm.userName" 
+            placeholder="请输入用户名称" 
+            clearable 
+            style="width: 200px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="岗位名称">
+          <el-input 
+            v-model="searchForm.positionName" 
+            placeholder="请输入岗位名称" 
+            clearable 
+            style="width: 200px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
+        </el-form-item>
         <el-form-item label="申请状态">
           <el-select 
             v-model="searchForm.status" 
             placeholder="申请状态" 
             clearable
-            @change="handleSearch"
-            @clear="handleSearch"
             style="width: 150px"
           >
             <el-option label="已申请" value="已申请" />
@@ -28,8 +50,9 @@
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="applicationId" label="申请ID" width="80" />
         <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="userName" label="用户名称" width="120" />
         <el-table-column prop="positionId" label="岗位ID" width="100" />
-        <el-table-column prop="positionName" label="岗位名称" width="150" />
+        <el-table-column prop="positionName" label="岗位名称" width="200" />
         <el-table-column prop="resumePdfPath" label="简历路径" width="200" show-overflow-tooltip />
         <el-table-column prop="status" label="申请状态" width="100">
           <template #default="{ row }">
@@ -78,15 +101,55 @@
         <el-descriptions-item label="审批时间">{{ currentRow.approveTime }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
+
+    <!-- 审批对话框 -->
+    <el-dialog v-model="approveVisible" title="审批通过" width="500px" @close="handleApproveDialogClose">
+      <el-form ref="approveFormRef" :model="approveForm" :rules="approveRules" label-width="120px">
+        <el-form-item label="入职日期" prop="hireDate">
+          <el-date-picker
+            v-model="approveForm.hireDate"
+            type="date"
+            placeholder="选择入职日期"
+            style="width: 100%"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="应签到时间" prop="checkInTime">
+          <el-time-picker
+            v-model="approveForm.checkInTime"
+            placeholder="选择应签到时间"
+            style="width: 100%"
+            format="HH:mm"
+            value-format="HH:mm"
+          />
+        </el-form-item>
+        <el-form-item label="应签退时间" prop="checkOutTime">
+          <el-time-picker
+            v-model="approveForm.checkOutTime"
+            placeholder="选择应签退时间"
+            style="width: 100%"
+            format="HH:mm"
+            value-format="HH:mm"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="approveVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleApproveSubmit" :loading="approveLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { getApplications, approveApplication, deleteApplication } from '../../api/application'
 
 const searchForm = reactive({
+  userName: '',
+  positionName: '',
   status: null
 })
 
@@ -99,11 +162,30 @@ const total = ref(0)
 const detailVisible = ref(false)
 const currentRow = ref({})
 
+// 审批对话框
+const approveVisible = ref(false)
+const approveFormRef = ref(null)
+const approveLoading = ref(false)
+const currentApproveRow = ref(null)
+const approveForm = reactive({
+  hireDate: '',
+  checkInTime: '',
+  checkOutTime: ''
+})
+
+const approveRules = {
+  hireDate: [{ required: true, message: '请选择入职日期', trigger: 'change' }],
+  checkInTime: [{ required: true, message: '请选择应签到时间', trigger: 'change' }],
+  checkOutTime: [{ required: true, message: '请选择应签退时间', trigger: 'change' }]
+}
+
 // 加载数据
 const loadData = async () => {
   loading.value = true
   try {
     const params = {
+      userName: searchForm.userName || undefined,
+      positionName: searchForm.positionName || undefined,
       status: searchForm.status || undefined
     }
     
@@ -132,27 +214,68 @@ const handleSearch = () => {
 
 // 重置
 const handleReset = () => {
+  searchForm.userName = ''
+  searchForm.positionName = ''
   searchForm.status = null
   handleSearch()
 }
 
 // 审批
 const handleApprove = (row, status) => {
-  const tip = status === '已通过' ? '通过' : '拒绝'
-  ElMessageBox.confirm(`确定要${tip}该申请吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      await approveApplication(row.applicationId, { status })
-      ElMessage.success(`${tip}成功`)
-      loadData()
-    } catch (error) {
-      console.error('审批失败:', error)
-      ElMessage.error('审批失败')
+  if (status === '已通过') {
+    // 通过时打开对话框填写入职信息
+    currentApproveRow.value = row
+    approveForm.hireDate = ''
+    approveForm.checkInTime = ''
+    approveForm.checkOutTime = ''
+    approveVisible.value = true
+  } else {
+    // 拒绝时直接确认
+    ElMessageBox.confirm('确定要拒绝该申请吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(async () => {
+      try {
+        await approveApplication(row.applicationId, { status })
+        ElMessage.success('拒绝成功')
+        loadData()
+      } catch (error) {
+        console.error('拒绝失败:', error)
+        ElMessage.error('拒绝失败')
+      }
+    }).catch(() => {})
+  }
+}
+
+// 提交审批
+const handleApproveSubmit = () => {
+  approveFormRef.value.validate(async (valid) => {
+    if (valid) {
+      approveLoading.value = true
+      try {
+        await approveApplication(currentApproveRow.value.applicationId, {
+          status: '已通过',
+          hireDate: approveForm.hireDate,
+          checkInTime: approveForm.checkInTime + ':00',
+          checkOutTime: approveForm.checkOutTime + ':00'
+        })
+        ElMessage.success('审批通过成功')
+        approveVisible.value = false
+        loadData()
+      } catch (error) {
+        console.error('审批失败:', error)
+        ElMessage.error('审批失败')
+      } finally {
+        approveLoading.value = false
+      }
     }
-  }).catch(() => {})
+  })
+}
+
+// 关闭审批对话框
+const handleApproveDialogClose = () => {
+  approveFormRef.value?.resetFields()
 }
 
 // 查看

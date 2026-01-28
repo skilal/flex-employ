@@ -12,4 +12,8 @@ public class Application {
     private String status;
     private LocalDateTime applyTime;
     private LocalDateTime approveTime;
+
+    // JOIN查询字段
+    private String userName;
+    private String positionName;
 }

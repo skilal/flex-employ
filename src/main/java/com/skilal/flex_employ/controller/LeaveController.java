@@ -2,7 +2,9 @@ package com.skilal.flex_employ.controller;
 
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.LeaveRequest;
+import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.LeaveRequestMapper;
+import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
 import com.skilal.flex_employ.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,9 @@ public class LeaveController {
 
     @Autowired
     private LeaveRequestMapper leaveRequestMapper;
+
+    @Autowired
+    private OnDutyWorkerMapper onDutyWorkerMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -39,6 +44,17 @@ public class LeaveController {
             @RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);
+
+        // 验证岗位ID：必须有在岗记录且状态为在岗
+        List<OnDutyWorker> workerRecords = onDutyWorkerMapper.findByUserId(userId);
+        boolean hasValidPosition = workerRecords.stream()
+                .anyMatch(w -> w.getPositionId().equals(leaveRequest.getPositionId())
+                        && w.getLeaveDate() == null);
+
+        if (!hasValidPosition) {
+            return Result.error("您在该岗位不是在岗状态，无法申请请假");
+        }
+
         leaveRequest.setUserId(userId);
         leaveRequest.setStatus("申请中");
         int result = leaveRequestMapper.insert(leaveRequest);

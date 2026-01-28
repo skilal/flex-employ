@@ -3,13 +3,35 @@
     <!-- 搜索栏 -->
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
+        <el-form-item label="用户名称">
+          <el-input 
+            v-model="searchForm.userName" 
+            placeholder="请输入用户名称" 
+            clearable 
+            style="width: 200px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="岗位名称">
+          <el-input 
+            v-model="searchForm.positionName" 
+            placeholder="请输入岗位名称" 
+            clearable 
+            style="width: 200px"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="handleSearch" />
+            </template>
+          </el-input>
+        </el-form-item>
         <el-form-item label="员工状态">
           <el-select 
             v-model="searchForm.workerStatus" 
             placeholder="员工状态" 
             clearable
-            @change="handleSearch"
-            @clear="handleSearch"
             style="width: 150px"
           >
             <el-option label="在岗" value="在岗" />
@@ -35,14 +57,16 @@
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="onDutyWorkerId" label="记录ID" width="100" />
         <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="userName" label="用户名称" width="150" />
         <el-table-column prop="positionId" label="岗位ID" width="100" />
-        <el-table-column prop="checkInTime" label="打卡上班时间" width="150" />
-        <el-table-column prop="checkOutTime" label="打卡下班时间" width="150" />
+        <el-table-column prop="positionName" label="岗位名称" width="200" />
+        <el-table-column prop="checkInTime" label="应签到时间" width="120" />
+        <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
         <el-table-column prop="hireDate" label="入职日期" width="120" />
         <el-table-column prop="leaveDate" label="离职日期" width="120" />
-        <el-table-column prop="workerStatus" label="员工状态" width="100">
+        <el-table-column label="员工状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.workerStatus === '在岗'" type="success">在岗</el-tag>
+            <el-tag v-if="!row.leaveDate" type="success">在岗</el-tag>
             <el-tag v-else type="info">已结束</el-tag>
           </template>
         </el-table-column>
@@ -145,9 +169,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { getWorkers, createWorker, updateWorker, deleteWorker } from '../../api/worker'
 
 const searchForm = reactive({
+  userName: '',
+  positionName: '',
   workerStatus: null
 })
 
@@ -184,6 +211,8 @@ const loadData = async () => {
   loading.value = true
   try {
     const params = {
+      userName: searchForm.userName || undefined,
+      positionName: searchForm.positionName || undefined,
       workerStatus: searchForm.workerStatus || undefined
     }
     
@@ -210,6 +239,8 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
+  searchForm.userName = ''
+  searchForm.positionName = ''
   searchForm.workerStatus = null
   handleSearch()
 }

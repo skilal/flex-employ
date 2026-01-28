@@ -40,6 +40,10 @@
           <el-icon><OfficeBuilding /></el-icon>
           <span>合作公司管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/users">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     
@@ -81,10 +85,11 @@ const pageTitle = computed(() => {
     '/admin/positions': '岗位管理',
     '/admin/applications': '岗位申请管理',
     '/admin/workers': '在岗员工管理',
-    '/admin/leaves': '请假管理',
-    '/admin/attendance': '考勤记录管理',
-    '/admin/salary': '薪资管理',
-    '/admin/companies': '合作公司管理'
+    '/admin/workers': '在岗员工管理',
+    '/admin/attendances': '考勤记录管理',
+    '/admin/salaries': '工资管理',
+    '/admin/companies': '合作公司管理',
+    '/admin/users': '用户管理'
   }
   return titleMap[route.path] || '管理后台'
 })

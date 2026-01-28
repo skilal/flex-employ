@@ -35,6 +35,12 @@ request.interceptors.response.use(
             return Promise.reject(new Error(res.message || '请求失败'))
         }
 
+        // 检查业务状态码，后端返回的code为200表示成功，否则为失败
+        if (res.code && res.code !== 200) {
+            ElMessage.error(res.message || '操作失败')
+            return Promise.reject(new Error(res.message || '操作失败'))
+        }
+
         return res
     },
     error => {

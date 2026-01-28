@@ -14,4 +14,8 @@ public class OnDutyWorker {
     private LocalDate hireDate;
     private LocalDate leaveDate;
     private String workerStatus;
+
+    // JOIN查询字段
+    private String userName;
+    private String positionName;
 }
