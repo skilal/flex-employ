@@ -20,6 +20,9 @@ public class AttendanceController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private com.skilal.flex_employ.service.AttendanceService attendanceService;
+
     @GetMapping
     public Result<List<Attendance>> getAttendances(@RequestParam(required = false) LocalDate attendanceDate,
             @RequestParam(required = false) String attendanceStatus,
@@ -40,6 +43,22 @@ public class AttendanceController {
 
     @PostMapping
     public Result<String> createAttendance(@RequestBody Attendance attendance) {
+        // 检查是否已经存在该日期的考勤记录
+        int existingCount = attendanceMapper.countByWorkerAndDate(
+                attendance.getOnDutyWorkerId(),
+                attendance.getAttendanceDate());
+        if (existingCount > 0) {
+            return Result.error("该员工在 " + attendance.getAttendanceDate() + " 已有考勤记录，请勿重复添加");
+        }
+
+        // 自动计算状态
+        String status = attendanceService.calculateStatus(
+                attendance.getOnDutyWorkerId(),
+                attendance.getAttendanceDate(),
+                attendance.getActualCheckIn(),
+                attendance.getActualCheckOut());
+        attendance.setAttendanceStatus(status);
+
         int result = attendanceMapper.insert(attendance);
         if (result > 0) {
             return Result.success("创建成功");
@@ -50,6 +69,24 @@ public class AttendanceController {
     @PutMapping("/{id}")
     public Result<String> updateAttendance(@PathVariable Long id, @RequestBody Attendance attendance) {
         attendance.setAttendanceId(id);
+
+        // 检查修改后的日期是否冲突（排除当前记录）
+        int existingCount = attendanceMapper.countByWorkerAndDateExcludeId(
+                attendance.getOnDutyWorkerId(),
+                attendance.getAttendanceDate(),
+                id);
+        if (existingCount > 0) {
+            return Result.error("修改失败：该员工在 " + attendance.getAttendanceDate() + " 已有其他考勤记录");
+        }
+
+        // 自动计算状态
+        String status = attendanceService.calculateStatus(
+                attendance.getOnDutyWorkerId(),
+                attendance.getAttendanceDate(),
+                attendance.getActualCheckIn(),
+                attendance.getActualCheckOut());
+        attendance.setAttendanceStatus(status);
+
         int result = attendanceMapper.update(attendance);
         if (result > 0) {
             return Result.success("更新成功");

@@ -149,6 +149,19 @@
           <el-input :value="form.checkOutTime" placeholder="自动填充" disabled style="width: 100%" />
         </el-form-item>
 
+        <el-form-item label="工作开始时间">
+          <el-input :value="form.workStartTime" placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="工作结束时间">
+          <el-input :value="form.workEndTime" placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="排班规则">
+          <el-tag v-if="form.workingDays" type="info">{{ formatWorkingDays(form.workingDays) }}</el-tag>
+          <el-input v-else placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
         <el-form-item label="考勤日期" prop="attendanceDate">
           <el-date-picker
             v-model="form.attendanceDate"
@@ -179,14 +192,9 @@
           />
         </el-form-item>
 
-        <el-form-item label="考勤状态" prop="attendanceStatus">
-          <el-select v-model="form.attendanceStatus" placeholder="请选择" style="width: 100%">
-            <el-option label="正常" value="正常" />
-            <el-option label="迟到" value="迟到" />
-            <el-option label="早退" value="早退" />
-            <el-option label="缺勤" value="缺勤" />
-            <el-option label="请假" value="请假" />
-          </el-select>
+        <el-form-item label="考勤状态" v-if="form.attendanceId">
+          <el-tag :type="getStatusType(form.attendanceStatus)">{{ form.attendanceStatus }}</el-tag>
+          <span style="font-size: 12px; color: #909399; margin-left: 10px;">(系统根据打卡时间自动判定)</span>
         </el-form-item>
       </el-form>
 
@@ -241,17 +249,19 @@ const form = reactive({
   checkInTime: '',
   checkOutTime: '',
   hireDate: '',
+  workStartTime: '',
+  workEndTime: '',
   attendanceDate: '',
   actualCheckIn: '',
   actualCheckOut: '',
-  attendanceStatus: '缺勤'
+  attendanceStatus: '缺勤',
+  workingDays: ''
 })
 
 const rules = {
   onDutyWorkerId: [{ required: true, message: '请输入在岗员工ID', trigger: 'blur' }],
   positionId: [{ required: true, message: '请输入岗位ID', trigger: 'blur' }],
-  attendanceDate: [{ required: true, message: '请选择考勤日期', trigger: 'change' }],
-  attendanceStatus: [{ required: true, message: '请选择考勤状态', trigger: 'change' }]
+  attendanceDate: [{ required: true, message: '请选择考勤日期', trigger: 'change' }]
 }
 
 const loadData = async () => {
@@ -294,6 +304,26 @@ const handleReset = () => {
   handleSearch()
 }
 
+const formatWorkingDays = (daysStr) => {
+  if (!daysStr) return '未设置'
+  const dayMap = {
+    '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日'
+  }
+  return daysStr.split(',').map(d => dayMap[d]).join(', ')
+}
+
+const getStatusType = (status) => {
+  const map = {
+    '正常': 'success',
+    '迟到': 'warning',
+    '早退': 'warning',
+    '迟到且早退': 'danger',
+    '缺勤': 'danger',
+    '请假': 'info'
+  }
+  return map[status] || 'info'
+}
+
 const handleAdd = () => {
   dialogTitle.value = '新增考勤记录'
   Object.assign(form, {
@@ -305,10 +335,13 @@ const handleAdd = () => {
     checkInTime: '',
     checkOutTime: '',
     hireDate: '',
+    workStartTime: '',
+    workEndTime: '',
     attendanceDate: '',
     actualCheckIn: '',
     actualCheckOut: '',
-    attendanceStatus: '缺勤'
+    attendanceStatus: '缺勤',
+    workingDays: ''
   })
   dialogVisible.value = true
 }
@@ -322,6 +355,9 @@ const handleWorkerChange = (val) => {
     form.checkInTime = worker.checkInTime
     form.checkOutTime = worker.checkOutTime
     form.hireDate = worker.hireDate
+    form.workStartTime = worker.workStartTime
+    form.workEndTime = worker.workEndTime
+    form.workingDays = worker.workingDays
   }
 }
 

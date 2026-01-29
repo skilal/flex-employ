@@ -26,6 +26,7 @@ public class Position {
     private String specialNote;
     private Integer totalPositions; // 招聘总人数
     private Integer remainingPositions; // 剩余招聘人数
+    private String workingDays; // 每周工作日，例如 "1,2,3,4,5" 代表周一至周五
 
     // 公司名称（不存储在数据库，由查询join获取）
     private transient String companyName;

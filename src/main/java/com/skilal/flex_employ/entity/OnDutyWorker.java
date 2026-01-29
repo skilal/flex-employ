@@ -18,4 +18,7 @@ public class OnDutyWorker {
     // JOIN查询字段
     private String userName;
     private String positionName;
+    private LocalDate workStartTime;
+    private LocalDate workEndTime;
+    private String workingDays;
 }

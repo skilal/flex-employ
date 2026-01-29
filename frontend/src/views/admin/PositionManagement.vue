@@ -83,7 +83,12 @@
         </el-table-column>
         <el-table-column prop="payCycle" label="薪资周期" width="100" />
         <el-table-column prop="dailyHours" label="每日工时" width="100" />
-        <el-table-column prop="weeklyFreq" label="每周频次" width="100" />
+        <el-table-column prop="workingDays" label="排班规则" width="180">
+          <template #default="{ row }">
+            <el-tag size="small" type="info">{{ formatWorkingDays(row.workingDays) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="weeklyFreq" label="每周天数" width="100" />
         <el-table-column label="劳务公司" width="200">
           <template #default="{ row }">
             <div>
@@ -243,23 +248,28 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="每周频次" prop="weeklyFreq">
+            <el-form-item label="每周天数" prop="weeklyFreq">
               <el-input-number 
                 v-model="form.weeklyFreq" 
-                :min="0" 
-                :max="7" 
+                disabled
                 style="width: 100%" 
               />
-              <span v-if="form.employmentType === '非全日制用工' && form.dailyHours && form.weeklyFreq" 
-                    style="font-size: 12px; margin-top: 4px; display: block;"
-                    :style="{ color: (form.dailyHours * form.weeklyFreq > 24) ? '#F56C6C' : '#67C23A' }">
-                {{ form.dailyHours * form.weeklyFreq > 24 ? '❌' : '✓' }} 
-                周总工时: {{ (form.dailyHours * form.weeklyFreq).toFixed(1) }}小时 
-                {{ form.dailyHours * form.weeklyFreq > 24 ? '(不超过24小时)' : '' }}
-              </span>
+              <span style="font-size: 12px; color: #909399;">(由工作日选择自动计算)</span>
             </el-form-item>
           </el-col>
         </el-row>
+
+        <el-form-item label="工作日选择" prop="workingDaysList">
+          <el-checkbox-group v-model="form.workingDaysList" @change="handleWorkingDaysChange">
+            <el-checkbox :label="1">周一</el-checkbox>
+            <el-checkbox :label="2">周二</el-checkbox>
+            <el-checkbox :label="3">周三</el-checkbox>
+            <el-checkbox :label="4">周四</el-checkbox>
+            <el-checkbox :label="5">周五</el-checkbox>
+            <el-checkbox :label="6">周六</el-checkbox>
+            <el-checkbox :label="7">周日</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
         
         <el-row :gutter="20">
           <el-col :span="12">
@@ -379,7 +389,9 @@ const form = reactive({
   responsibleId: null,
   specialNote: '',
   totalPositions: 1,        // 招聘人数默认1
-  remainingPositions: 1     // 剩余人数默认1
+  remainingPositions: 1,     // 剩余人数默认1
+  workingDays: '',
+  workingDaysList: [1, 2, 3, 4, 5]
 })
 
 const rules = {
@@ -429,13 +441,13 @@ const handleEmploymentTypeChange = (type) => {
       payCycleTip.value = '💡 推荐：月结'
       form.payCycle = '月结'
       form.dailyHours = 8
-      form.weeklyFreq = 5
+      form.workingDaysList = [1, 2, 3, 4, 5]
+      handleWorkingDaysChange()
       break
     case '非全日制用工':
       payCycleTip.value = '💡 推荐：15日结（每日≤4h，每周≤24h）'
       form.payCycle = '15日结'
       form.dailyHours = 4
-      form.weeklyFreq = 5
       break
     case '项目制用工':
       payCycleTip.value = '💡 可选：一次性结算、日结、周结、月结'
@@ -444,6 +456,19 @@ const handleEmploymentTypeChange = (type) => {
     default:
       payCycleTip.value = ''
   }
+}
+
+const handleWorkingDaysChange = () => {
+  form.workingDays = form.workingDaysList.sort().join(',')
+  form.weeklyFreq = form.workingDaysList.length
+}
+
+const formatWorkingDays = (daysStr) => {
+  if (!daysStr) return '未设置'
+  const dayMap = {
+    '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日'
+  }
+  return daysStr.split(',').map(d => dayMap[d]).join(', ')
 }
 
 // 加载数据
@@ -512,8 +537,11 @@ const handleAdd = () => {
     positionStatus: 0,
     specialNote: '',
     totalPositions: 1,
-    remainingPositions: 1
+    remainingPositions: 1,
+    workingDays: '',
+    workingDaysList: [1, 2, 3, 4, 5]
   })
+  handleWorkingDaysChange()
   payCycleTip.value = ''
   dialogVisible.value = true
 }
@@ -522,6 +550,11 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   dialogTitle.value = '编辑岗位'
   Object.assign(form, row)
+  if (row.workingDays) {
+    form.workingDaysList = row.workingDays.split(',').map(Number)
+  } else {
+    form.workingDaysList = []
+  }
   dialogVisible.value = true
 }
 

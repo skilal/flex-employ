@@ -9,7 +9,8 @@ import java.util.List;
 public interface AttendanceMapper {
 
         @Select("<script>" +
-                        "SELECT a.*, u.account AS userName, p.position_name AS positionName " +
+                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -29,7 +30,8 @@ public interface AttendanceMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT a.*, u.account AS userName, p.position_name AS positionName " +
+        @Select("SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -46,10 +48,18 @@ public interface AttendanceMapper {
         @Options(useGeneratedKeys = true, keyProperty = "attendanceId")
         int insert(Attendance attendance);
 
-        @Update("UPDATE attendance SET actual_check_in = #{actualCheckIn}, actual_check_out = #{actualCheckOut}, " +
-                        "attendance_status = #{attendanceStatus} WHERE attendance_id = #{attendanceId}")
+        @Update("UPDATE attendance SET attendance_date = #{attendanceDate}, actual_check_in = #{actualCheckIn}, " +
+                        "actual_check_out = #{actualCheckOut}, attendance_status = #{attendanceStatus} " +
+                        "WHERE attendance_id = #{attendanceId}")
         int update(Attendance attendance);
 
         @Delete("DELETE FROM attendance WHERE attendance_id = #{attendanceId}")
         int delete(Long attendanceId);
+
+        @Select("SELECT COUNT(*) FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date}")
+        int countByWorkerAndDate(@Param("onDutyWorkerId") Long onDutyWorkerId, @Param("date") java.time.LocalDate date);
+
+        @Select("SELECT COUNT(*) FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date} AND attendance_id != #{excludeId}")
+        int countByWorkerAndDateExcludeId(@Param("onDutyWorkerId") Long onDutyWorkerId,
+                        @Param("date") java.time.LocalDate date, @Param("excludeId") Long excludeId);
 }

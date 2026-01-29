@@ -17,4 +17,6 @@ public class Attendance {
     // JOIN查询字段
     private String userName;
     private String positionName;
+    private java.time.LocalDate workStartTime;
+    private java.time.LocalDate workEndTime;
 }

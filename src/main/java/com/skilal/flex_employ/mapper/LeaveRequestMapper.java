@@ -45,4 +45,10 @@ public interface LeaveRequestMapper {
 
         @Delete("DELETE FROM leave_request WHERE leave_request_id = #{leaveRequestId}")
         int delete(Long leaveRequestId);
+
+        // 检查用户在某天是否处于已通过的请假状态
+        @Select("SELECT COUNT(*) FROM leave_request " +
+                        "WHERE user_id = #{userId} AND status IN ('已通过', '同意') " +
+                        "AND #{date} BETWEEN start_date AND end_date")
+        int checkLeave(@Param("userId") Long userId, @Param("date") java.time.LocalDate date);
 }

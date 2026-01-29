@@ -10,6 +10,8 @@ public interface OnDutyWorkerMapper {
         @Select("<script>" +
                         "SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
                         "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
+                        +
                         "u.account AS userName, p.position_name AS positionName " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -28,7 +30,8 @@ public interface OnDutyWorkerMapper {
                         @Param("positionName") String positionName);
 
         @Select("SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
-                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, p.position_name AS positionName "
+                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
+                        "p.position_name AS positionName, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays "
                         +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
