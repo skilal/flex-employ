@@ -3,6 +3,12 @@
     <!-- 搜索栏 -->
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
+        <el-form-item label="员工名称">
+          <el-input v-model="searchForm.userName" placeholder="请输入员工名称" clearable @keyup.enter="handleSearch" style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="岗位名称">
+          <el-input v-model="searchForm.positionName" placeholder="请输入岗位名称" clearable @keyup.enter="handleSearch" style="width: 180px" />
+        </el-form-item>
         <el-form-item label="请假状态">
           <el-select 
             v-model="searchForm.status" 
@@ -20,6 +26,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -28,9 +35,19 @@
     <!-- 表格 -->
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="leaveRequestId" label="请假ID" width="100" />
-        <el-table-column prop="userId" label="用户ID" width="100" />
-        <el-table-column prop="positionId" label="岗位ID" width="100" />
+        <el-table-column prop="leaveRequestId" label="请假ID" width="80" />
+        <el-table-column label="员工信息" width="150">
+          <template #default="{ row }">
+            <div>{{ row.userName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.userId }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="岗位信息" width="180">
+          <template #default="{ row }">
+            <div>{{ row.positionName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.positionId }}</div>
+          </template>
+        </el-table-column>
         <el-table-column prop="leaveType" label="请假类型" width="100" />
         <el-table-column prop="startDate" label="开始日期" width="120" />
         <el-table-column prop="endDate" label="结束日期" width="120" />
@@ -76,6 +93,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getLeaves, approveLeave, deleteLeave } from '../../api/leave'
 
 const searchForm = reactive({
+  userName: '',
+  positionName: '',
   status: null
 })
 
@@ -89,7 +108,9 @@ const loadData = async () => {
   loading.value = true
   try {
     const params = {
-      status: searchForm.status || undefined
+      status: searchForm.status || undefined,
+      userName: searchForm.userName || undefined,
+      positionName: searchForm.positionName || undefined
     }
     
     const res = await getLeaves(params)
@@ -115,6 +136,8 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
+  searchForm.userName = ''
+  searchForm.positionName = ''
   searchForm.status = null
   handleSearch()
 }

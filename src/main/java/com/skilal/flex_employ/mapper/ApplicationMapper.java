@@ -8,8 +8,9 @@ import java.util.List;
 public interface ApplicationMapper {
 
         @Select("<script>" +
-                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, a.application_note AS applicationNote "
-                        +
+                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
+                        "a.application_note AS applicationNote " +
                         "FROM application a " +
                         "LEFT JOIN user u ON a.user_id = u.user_id " +
                         "LEFT JOIN position p ON a.position_id = p.position_id " +
@@ -25,7 +26,12 @@ public interface ApplicationMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT * FROM application WHERE user_id = #{userId} ORDER BY apply_time DESC")
+        @Select("SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
+                        "FROM application a " +
+                        "LEFT JOIN user u ON a.user_id = u.user_id " +
+                        "LEFT JOIN position p ON a.position_id = p.position_id " +
+                        "WHERE a.user_id = #{userId} ORDER BY a.apply_time DESC")
         List<Application> findByUserId(Long userId);
 
         @Select("SELECT * FROM application WHERE application_id = #{applicationId}")

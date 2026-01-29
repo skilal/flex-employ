@@ -16,6 +16,8 @@ public class Application {
     // JOIN查询字段
     private String userName;
     private String positionName;
+    private java.time.LocalDate workStartTime;
+    private java.time.LocalDate workEndTime;
 
     // 申请说明
     private String applicationNote;

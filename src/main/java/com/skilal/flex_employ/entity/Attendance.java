@@ -13,4 +13,8 @@ public class Attendance {
     private LocalTime actualCheckIn;
     private LocalTime actualCheckOut;
     private String attendanceStatus;
+
+    // JOIN查询字段
+    private String userName;
+    private String positionName;
 }

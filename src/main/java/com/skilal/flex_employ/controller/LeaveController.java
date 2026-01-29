@@ -26,8 +26,10 @@ public class LeaveController {
     private JwtUtil jwtUtil;
 
     @GetMapping
-    public Result<List<LeaveRequest>> getLeaves(@RequestParam(required = false) String status) {
-        List<LeaveRequest> leaves = leaveRequestMapper.findAll(status);
+    public Result<List<LeaveRequest>> getLeaves(@RequestParam(required = false) String status,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String positionName) {
+        List<LeaveRequest> leaves = leaveRequestMapper.findAll(status, userName, positionName);
         return Result.success(leaves);
     }
 

@@ -3,6 +3,12 @@
     <!-- 搜索栏 -->
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
+        <el-form-item label="员工名称">
+          <el-input v-model="searchForm.userName" placeholder="请输入员工名称" clearable @keyup.enter="handleSearch" style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="岗位名称">
+          <el-input v-model="searchForm.positionName" placeholder="请输入岗位名称" clearable @keyup.enter="handleSearch" style="width: 180px" />
+        </el-form-item>
         <el-form-item label="考勤日期">
           <el-date-picker
             v-model="searchForm.attendanceDate"
@@ -12,7 +18,7 @@
             clearable
             @change="handleSearch"
             @clear="handleSearch"
-            style="width: 200px"
+            style="width: 150px"
           />
         </el-form-item>
         <el-form-item label="考勤状态">
@@ -22,7 +28,7 @@
             clearable
             @change="handleSearch"
             @clear="handleSearch"
-            style="width: 150px"
+            style="width: 120px"
           >
             <el-option label="正常" value="正常" />
             <el-option label="迟到" value="迟到" />
@@ -32,6 +38,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -48,9 +55,19 @@
     <!-- 表格 -->
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="attendanceId" label="考勤ID" width="100" />
-        <el-table-column prop="onDutyWorkerId" label="在岗员工ID" width="120" />
-        <el-table-column prop="positionId" label="岗位ID" width="100" />
+        <el-table-column prop="attendanceId" label="考勤ID" width="80" />
+        <el-table-column label="员工信息" width="150">
+          <template #default="{ row }">
+            <div>{{ row.userName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.onDutyWorkerId }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="岗位信息" width="180">
+          <template #default="{ row }">
+            <div>{{ row.positionName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.positionId }}</div>
+          </template>
+        </el-table-column>
         <el-table-column prop="attendanceDate" label="考勤日期" width="120" />
         <el-table-column prop="actualCheckIn" label="实际签到时间" width="150" />
         <el-table-column prop="actualCheckOut" label="实际签退时间" width="150" />
@@ -95,12 +112,41 @@
         :rules="rules"
         label-width="120px"
       >
-        <el-form-item label="在岗员工ID" prop="onDutyWorkerId">
-          <el-input-number v-model="form.onDutyWorkerId" :min="1" style="width: 100%" />
+        <el-form-item label="在岗员工" prop="onDutyWorkerId">
+          <el-select
+            v-model="form.onDutyWorkerId"
+            placeholder="请选择在岗员工"
+            filterable
+            style="width: 100%"
+            @change="handleWorkerChange"
+          >
+            <el-option
+              v-for="item in workers"
+              :key="item.onDutyWorkerId"
+              :label="`${item.userName} (${item.positionName})`"
+              :value="item.onDutyWorkerId"
+            />
+          </el-select>
         </el-form-item>
 
-        <el-form-item label="岗位ID" prop="positionId">
-          <el-input-number v-model="form.positionId" :min="1" style="width: 100%" />
+        <el-form-item label="员工姓名">
+          <el-input :value="form.userName" placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="入职日期">
+          <el-input :value="form.hireDate" placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="岗位名称">
+          <el-input :value="form.positionName" placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="应签到时间">
+          <el-input :value="form.checkInTime" placeholder="自动填充" disabled style="width: 100%" />
+        </el-form-item>
+
+        <el-form-item label="应签退时间">
+          <el-input :value="form.checkOutTime" placeholder="自动填充" disabled style="width: 100%" />
         </el-form-item>
 
         <el-form-item label="考勤日期" prop="attendanceDate">
@@ -156,8 +202,21 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAttendances, createAttendance, updateAttendance, deleteAttendance } from '../../api/attendance'
+import { getWorkers } from '../../api/worker'
+
+const workers = ref([])
+const loadWorkers = async () => {
+  try {
+    const res = await getWorkers({ workerStatus: '在岗' })
+    workers.value = res.data || []
+  } catch (error) {
+    console.error('加载在岗员工失败:', error)
+  }
+}
 
 const searchForm = reactive({
+  userName: '',
+  positionName: '',
   attendanceDate: null,
   attendanceStatus: null
 })
@@ -177,6 +236,11 @@ const form = reactive({
   attendanceId: null,
   onDutyWorkerId: null,
   positionId: null,
+  userName: '',
+  positionName: '',
+  checkInTime: '',
+  checkOutTime: '',
+  hireDate: '',
   attendanceDate: '',
   actualCheckIn: '',
   actualCheckOut: '',
@@ -195,7 +259,9 @@ const loadData = async () => {
   try {
     const params = {
       attendanceDate: searchForm.attendanceDate || undefined,
-      attendanceStatus: searchForm.attendanceStatus || undefined
+      attendanceStatus: searchForm.attendanceStatus || undefined,
+      userName: searchForm.userName || undefined,
+      positionName: searchForm.positionName || undefined
     }
     
     const res = await getAttendances(params)
@@ -221,6 +287,8 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
+  searchForm.userName = ''
+  searchForm.positionName = ''
   searchForm.attendanceDate = null
   searchForm.attendanceStatus = null
   handleSearch()
@@ -232,12 +300,29 @@ const handleAdd = () => {
     attendanceId: null,
     onDutyWorkerId: null,
     positionId: null,
+    userName: '',
+    positionName: '',
+    checkInTime: '',
+    checkOutTime: '',
+    hireDate: '',
     attendanceDate: '',
     actualCheckIn: '',
     actualCheckOut: '',
     attendanceStatus: '缺勤'
   })
   dialogVisible.value = true
+}
+
+const handleWorkerChange = (val) => {
+  const worker = workers.value.find(w => w.onDutyWorkerId === val)
+  if (worker) {
+    form.positionId = worker.positionId
+    form.userName = worker.userName
+    form.positionName = worker.positionName
+    form.checkInTime = worker.checkInTime
+    form.checkOutTime = worker.checkOutTime
+    form.hireDate = worker.hireDate
+  }
 }
 
 const handleEdit = (row) => {
@@ -303,6 +388,7 @@ const handleCurrentChange = (val) => {
 
 onMounted(() => {
   loadData()
+  loadWorkers()
 })
 </script>
 

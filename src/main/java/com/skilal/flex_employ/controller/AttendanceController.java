@@ -22,8 +22,11 @@ public class AttendanceController {
 
     @GetMapping
     public Result<List<Attendance>> getAttendances(@RequestParam(required = false) LocalDate attendanceDate,
-            @RequestParam(required = false) String attendanceStatus) {
-        List<Attendance> attendances = attendanceMapper.findAll(attendanceDate, attendanceStatus);
+            @RequestParam(required = false) String attendanceStatus,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String positionName) {
+        List<Attendance> attendances = attendanceMapper.findAll(attendanceDate, attendanceStatus, userName,
+                positionName);
         return Result.success(attendances);
     }
 

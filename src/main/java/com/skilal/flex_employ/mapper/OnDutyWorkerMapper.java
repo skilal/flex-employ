@@ -8,7 +8,9 @@ import java.util.List;
 public interface OnDutyWorkerMapper {
 
         @Select("<script>" +
-                        "SELECT w.*, u.account AS userName, p.position_name AS positionName " +
+                        "SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
+                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
+                        "u.account AS userName, p.position_name AS positionName " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +

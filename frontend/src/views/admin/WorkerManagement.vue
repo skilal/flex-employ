@@ -56,18 +56,27 @@
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="onDutyWorkerId" label="记录ID" width="100" />
-        <el-table-column prop="userId" label="用户ID" width="100" />
-        <el-table-column prop="userName" label="用户名称" width="150" />
-        <el-table-column prop="positionId" label="岗位ID" width="100" />
-        <el-table-column prop="positionName" label="岗位名称" width="200" />
+        <el-table-column label="员工信息" width="150">
+          <template #default="{ row }">
+            <div>{{ row.userName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.userId }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="岗位信息" width="180">
+          <template #default="{ row }">
+            <div>{{ row.positionName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.positionId }}</div>
+          </template>
+        </el-table-column>
         <el-table-column prop="checkInTime" label="应签到时间" width="120" />
         <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
         <el-table-column prop="hireDate" label="入职日期" width="120" />
         <el-table-column prop="leaveDate" label="离职日期" width="120" />
         <el-table-column label="员工状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="!row.leaveDate" type="success">在岗</el-tag>
-            <el-tag v-else type="info">已结束</el-tag>
+            <el-tag v-if="row.workerStatus === '在岗'" type="success">在岗</el-tag>
+            <el-tag v-else-if="row.workerStatus === '已结束' || row.leaveDate" type="info">已结束</el-tag>
+            <el-tag v-else type="warning">{{ row.workerStatus || '未知' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">

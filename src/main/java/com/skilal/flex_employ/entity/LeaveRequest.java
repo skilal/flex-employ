@@ -19,4 +19,8 @@ public class LeaveRequest {
     private Long approverUserId;
     private LocalDateTime applyTime;
     private LocalDateTime approveTime;
+
+    // JOIN查询字段
+    private String userName;
+    private String positionName;
 }

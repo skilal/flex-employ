@@ -49,10 +49,18 @@
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="applicationId" label="申请ID" width="80" />
-        <el-table-column prop="userId" label="用户ID" width="100" />
-        <el-table-column prop="userName" label="用户名称" width="120" />
-        <el-table-column prop="positionId" label="岗位ID" width="100" />
-        <el-table-column prop="positionName" label="岗位名称" width="200" />
+        <el-table-column label="员工信息" width="150">
+          <template #default="{ row }">
+            <div>{{ row.userName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.userId }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="岗位信息" width="180">
+          <template #default="{ row }">
+            <div>{{ row.positionName || '-' }}</div>
+            <div style="color: #909399; font-size: 12px;">ID: {{ row.positionId }}</div>
+          </template>
+        </el-table-column>
         <el-table-column prop="resumePdfPath" label="简历路径" width="200" show-overflow-tooltip />
         <el-table-column prop="applicationNote" label="申请说明" width="200" show-overflow-tooltip />
         <el-table-column prop="status" label="申请状态" width="100">
@@ -227,9 +235,9 @@ const handleApprove = (row, status) => {
   if (status === '已通过') {
     // 通过时打开对话框填写入职信息
     currentApproveRow.value = row
-    approveForm.hireDate = ''
-    approveForm.checkInTime = ''
-    approveForm.checkOutTime = ''
+    approveForm.hireDate = row.workStartTime || ''
+    approveForm.checkInTime = '08:00'
+    approveForm.checkOutTime = '17:00'
     approveVisible.value = true
   } else {
     // 拒绝时直接确认
