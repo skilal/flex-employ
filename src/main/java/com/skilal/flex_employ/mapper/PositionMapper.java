@@ -8,7 +8,9 @@ import java.util.List;
 public interface PositionMapper {
 
         @Select("<script>" +
-                        "SELECT p.*, c.company_name FROM position p " +
+                        "SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
+                        +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
                         "WHERE 1=1 " +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
@@ -25,21 +27,25 @@ public interface PositionMapper {
                         @Param("employmentType") String employmentType,
                         @Param("positionStatus") Integer positionStatus);
 
-        @Select("SELECT p.*, c.company_name FROM position p " +
+        @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
+                        +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
                         "WHERE p.position_status = 1 ORDER BY p.created_at DESC")
         List<Position> findRecruiting();
 
-        @Select("SELECT * FROM position WHERE position_id = #{positionId}")
+        @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions FROM position p WHERE position_id = #{positionId}")
         Position findById(Long positionId);
 
         @Insert("INSERT INTO position (position_name, work_location, region_code, duty_desc, work_start_time, " +
                         "work_end_time, employment_type, labor_company_id, basic_salary, pay_cycle, salary_desc, " +
-                        "daily_hours, weekly_freq, position_status, responsible_id, special_note, creator_id) " +
+                        "daily_hours, weekly_freq, position_status, responsible_id, special_note, creator_id, total_positions, remaining_positions) "
+                        +
                         "VALUES (#{positionName}, #{workLocation}, #{regionCode}, #{dutyDesc}, #{workStartTime}, " +
                         "#{workEndTime}, #{employmentType}, #{laborCompanyId}, #{basicSalary}, #{payCycle}, #{salaryDesc}, "
                         +
-                        "#{dailyHours}, #{weeklyFreq}, #{positionStatus}, #{responsibleId}, #{specialNote}, #{creatorId})")
+                        "#{dailyHours}, #{weeklyFreq}, #{positionStatus}, #{responsibleId}, #{specialNote}, #{creatorId}, #{totalPositions}, #{remainingPositions})")
         @Options(useGeneratedKeys = true, keyProperty = "positionId")
         int insert(Position position);
 
@@ -50,9 +56,17 @@ public interface PositionMapper {
                         "basic_salary = #{basicSalary}, pay_cycle = #{payCycle}, salary_desc = #{salaryDesc}, " +
                         "daily_hours = #{dailyHours}, weekly_freq = #{weeklyFreq}, position_status = #{positionStatus}, "
                         +
-                        "responsible_id = #{responsibleId}, special_note = #{specialNote} WHERE position_id = #{positionId}")
+                        "responsible_id = #{responsibleId}, special_note = #{specialNote}, total_positions = #{totalPositions}, remaining_positions = #{remainingPositions} WHERE position_id = #{positionId}")
         int update(Position position);
 
         @Delete("DELETE FROM position WHERE position_id = #{positionId}")
         int delete(Long positionId);
+
+        // 减少剩余人数
+        @Update("UPDATE position SET remaining_positions = remaining_positions - 1 WHERE position_id = #{positionId} AND remaining_positions > 0")
+        int decreaseRemainingPositions(Long positionId);
+
+        // 关闭岗位
+        @Update("UPDATE position SET position_status = 0 WHERE position_id = #{positionId}")
+        int closePosition(Long positionId);
 }

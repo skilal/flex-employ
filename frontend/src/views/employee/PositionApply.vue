@@ -63,10 +63,24 @@
             </el-table-column>
             <el-table-column prop="payCycle" label="薪资周期" width="100" />
             <el-table-column prop="dailyHours" label="每日工时" width="100" />
+            <el-table-column prop="remainingPositions" label="剩余人数" width="100">
+              <template #default="{ row }">
+                <span :style="{ color: row.remainingPositions <= 0 ? 'red' : row.remainingPositions < 3 ? 'orange' : '' }">
+                  {{ row.remainingPositions || 0 }}
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column prop="dutyDesc" label="职责描述" show-overflow-tooltip />
             <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" type="primary" @click="handleApply(row)">申请</el-button>
+                <el-button 
+                  size="small" 
+                  type="primary" 
+                  @click="handleApply(row)"
+                  :disabled="row.remainingPositions <= 0"
+                >
+                  {{ row.remainingPositions <= 0 ? '已招满' : '申请' }}
+                </el-button>
                 <el-button size="small" @click="handleViewDetail(row)">详情</el-button>
               </template>
             </el-table-column>
@@ -99,6 +113,7 @@
             </el-table-column>
             <el-table-column prop="applyTime" label="申请时间" width="180" />
             <el-table-column prop="approveTime" label="审批时间" width="180" />
+            <el-table-column prop="applicationNote" label="申请说明" show-overflow-tooltip />
           </el-table>
         </el-card>
       </el-tab-pane>
@@ -134,7 +149,17 @@
             v-model="applyForm.resumePdfPath"
             placeholder="请输入简历PDF路径或上传简历"
           />
-          <span style="font-size: 12px; color: #999;">提示：请输入简历文件路径</span>
+          <span style="font-size: 12px; color: #999;">提示:请输入简历文件路径</span>
+        </el-form-item>
+        <el-form-item label="申请说明" prop="applicationNote">
+          <el-input
+            v-model="applyForm.applicationNote"
+            type="textarea"
+            :rows="4"
+            placeholder="请简要说明您为什么适合这个岗位，以及您的优势..."
+            maxlength="500"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -150,7 +175,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getRecruitingPositions } from '../../api/position'
-import { getMyApplications, createApplication } from '../../api/application'
+import { getMyApplications, createApplication, checkWorkerStatus, checkTimeConflict } from '../../api/application'
 import { useUserStore } from '../../stores/user'
 
 const userStore = useUserStore()
@@ -178,7 +203,8 @@ const applyFormRef = ref(null)
 const submitLoading = ref(false)
 
 const applyForm = reactive({
-  resumePdfPath: ''
+  resumePdfPath: '',
+  applicationNote: ''
 })
 
 const applyRules = {
@@ -261,9 +287,28 @@ const handleViewDetail = (row) => {
   detailVisible.value = true
 }
 
-const handleApply = (row) => {
+const handleApply = async (row) => {
+  // 先检查是否已在岗
+  try {
+    const checkRes = await checkWorkerStatus(row.positionId)
+    if (checkRes.data.isOnDuty) {
+      ElMessage.warning(checkRes.data.message)
+      return
+    }
+    
+    // 检查时间冲突
+    const conflictRes = await checkTimeConflict(row.positionId)
+    if (conflictRes.data.hasConflict) {
+      ElMessage.error(conflictRes.data.message)
+      return
+    }
+  } catch (error) {
+    console.error('检查申请状态失败:', error)
+  }
+  
   currentPosition.value = row
   applyForm.resumePdfPath = ''
+  applyForm.applicationNote = ''
   applyVisible.value = true
 }
 
@@ -274,7 +319,8 @@ const handleSubmitApply = async () => {
       try {
         await createApplication({
           positionId: currentPosition.value.positionId,
-          resumePdfPath: applyForm.resumePdfPath
+          resumePdfPath: applyForm.resumePdfPath,
+          applicationNote: applyForm.applicationNote
         })
         ElMessage.success('申请提交成功')
         applyVisible.value = false

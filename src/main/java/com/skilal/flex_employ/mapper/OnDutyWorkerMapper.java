@@ -25,13 +25,17 @@ public interface OnDutyWorkerMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT w.*, p.position_name AS positionName " +
+        @Select("SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
+                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, p.position_name AS positionName "
+                        +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
                         "WHERE w.user_id = #{userId}")
         List<OnDutyWorker> findByUserId(Long userId);
 
-        @Select("SELECT * FROM on_duty_worker WHERE on_duty_worker_id = #{onDutyWorkerId}")
+        @Select("SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
+                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate " +
+                        "FROM on_duty_worker w WHERE on_duty_worker_id = #{onDutyWorkerId}")
         OnDutyWorker findById(Long onDutyWorkerId);
 
         @Insert("INSERT INTO on_duty_worker (user_id, position_id, check_in_time, check_out_time, hire_date, leave_date, worker_status) "
@@ -47,4 +51,8 @@ public interface OnDutyWorkerMapper {
 
         @Delete("DELETE FROM on_duty_worker WHERE on_duty_worker_id = #{onDutyWorkerId}")
         int delete(Long onDutyWorkerId);
+
+        // 检查员工是否已在某岗位在岗
+        @Select("SELECT COUNT(*) FROM on_duty_worker WHERE user_id = #{userId} AND position_id = #{positionId} AND worker_status = '在岗'")
+        int checkWorkerStatus(@Param("userId") Long userId, @Param("positionId") Long positionId);
 }

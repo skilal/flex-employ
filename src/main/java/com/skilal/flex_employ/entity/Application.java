@@ -16,4 +16,7 @@ public class Application {
     // JOIN查询字段
     private String userName;
     private String positionName;
+
+    // 申请说明
+    private String applicationNote;
 }

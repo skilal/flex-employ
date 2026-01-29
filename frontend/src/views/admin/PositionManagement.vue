@@ -94,6 +94,14 @@
             </div>
           </template>
         </el-table-column>
+        <el-table-column prop="totalPositions" label="招聘人数" width="100" />
+        <el-table-column prop="remainingPositions" label="剩余人数" width="100">
+          <template #default="{ row }">
+            <span :style="{ color: row.remainingPositions <= 0 ? 'red' : '' }">
+              {{ row.remainingPositions || 0 }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column prop="positionStatus" label="岗位状态" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.positionStatus === 0" type="info">未发布</el-tag>
@@ -252,6 +260,34 @@
             </el-form-item>
           </el-col>
         </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="招聘人数" prop="totalPositions">
+              <el-input-number 
+                v-model="form.totalPositions" 
+                :min="1" 
+                :max="999" 
+                style="width: 100%" 
+                placeholder="请输入招聘总人数"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="剩余人数" prop="remainingPositions">
+              <el-input-number 
+                v-model="form.remainingPositions" 
+                :min="0" 
+                :max="999" 
+                style="width: 100%" 
+                placeholder="剩余可招聘人数"
+              />
+              <span style="font-size: 12px; color: #E6A23C; margin-top: 4px; display: block;">
+                ⚠️ 修改此值会影响岗位招聘状态
+              </span>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
@@ -340,7 +376,10 @@ const form = reactive({
   dailyHours: 0,
   weeklyFreq: 0,
   positionStatus: 0,
-  specialNote: ''
+  responsibleId: null,
+  specialNote: '',
+  totalPositions: 1,        // 招聘人数默认1
+  remainingPositions: 1     // 剩余人数默认1
 })
 
 const rules = {
@@ -471,8 +510,11 @@ const handleAdd = () => {
     dailyHours: 0,
     weeklyFreq: 0,
     positionStatus: 0,
-    specialNote: ''
+    specialNote: '',
+    totalPositions: 1,
+    remainingPositions: 1
   })
+  payCycleTip.value = ''
   dialogVisible.value = true
 }
 

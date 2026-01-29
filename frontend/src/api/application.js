@@ -43,3 +43,21 @@ export function deleteApplication(id) {
         method: 'delete'
     })
 }
+
+// 检查员工是否已在岗
+export function checkWorkerStatus(positionId) {
+    return request({
+        url: '/applications/check-worker-status',
+        method: 'get',
+        params: { positionId }
+    })
+}
+
+// 检查工作时间冲突
+export function checkTimeConflict(positionId) {
+    return request({
+        url: '/applications/check-time-conflict',
+        method: 'get',
+        params: { positionId }
+    })
+}

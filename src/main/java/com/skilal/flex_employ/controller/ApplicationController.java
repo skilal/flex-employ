@@ -6,6 +6,7 @@ import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.ApplicationMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
 import com.skilal.flex_employ.util.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/applications")
 public class ApplicationController {
@@ -23,6 +25,9 @@ public class ApplicationController {
 
     @Autowired
     private OnDutyWorkerMapper onDutyWorkerMapper;
+
+    @Autowired
+    private com.skilal.flex_employ.mapper.PositionMapper positionMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -41,6 +46,75 @@ public class ApplicationController {
         Long userId = jwtUtil.getUserIdFromToken(token);
         List<Application> applications = applicationMapper.findByUserId(userId);
         return Result.success(applications);
+    }
+
+    // 检查员工是否已在某岗位在岗
+    @GetMapping("/check-worker-status")
+    public Result<Map<String, Object>> checkWorkerStatus(
+            @RequestParam Long positionId,
+            @RequestHeader("Authorization") String token) {
+        token = token.replace("Bearer ", "");
+        Long userId = jwtUtil.getUserIdFromToken(token);
+
+        int count = onDutyWorkerMapper.checkWorkerStatus(userId, positionId);
+        boolean isOnDuty = count > 0;
+
+        return Result.success(Map.of(
+                "isOnDuty", isOnDuty,
+                "message", isOnDuty ? "您已经是该岗位的在岗员工，无需再次申请" : "可以申请"));
+    }
+
+    // 检查工作时间冲突
+    @GetMapping("/check-time-conflict")
+    public Result<Map<String, Object>> checkTimeConflict(
+            @RequestParam Long positionId,
+            @RequestHeader("Authorization") String token) {
+        token = token.replace("Bearer ", "");
+        Long userId = jwtUtil.getUserIdFromToken(token);
+
+        // 获取要申请的岗位信息
+        com.skilal.flex_employ.entity.Position targetPosition = positionMapper.findById(positionId);
+        if (targetPosition == null) {
+            return Result.error("岗位不存在");
+        }
+
+        // 获取用户当前所有在岗记录
+        java.util.List<com.skilal.flex_employ.entity.OnDutyWorker> onDutyList = onDutyWorkerMapper.findByUserId(userId);
+
+        // 检查每个在岗岗位的时间是否与目标岗位冲突
+        for (com.skilal.flex_employ.entity.OnDutyWorker worker : onDutyList) {
+            log.info("检查冲突 - 当前在岗记录ID: {}, 岗位ID: {}, 状态: {}",
+                    worker.getOnDutyWorkerId(), worker.getPositionId(), worker.getWorkerStatus());
+            if (!"在岗".equals(worker.getWorkerStatus())) {
+                continue; // 只检查在岗状态的记录
+            }
+
+            // 获取在岗岗位的详细信息
+            com.skilal.flex_employ.entity.Position currentPosition = positionMapper.findById(worker.getPositionId());
+            if (currentPosition == null) {
+                continue;
+            }
+
+            // 检查工作时间是否冲突（日期范围重叠）
+            // 如果目标岗位的开始时间 <= 当前岗位的结束时间 且 目标岗位的结束时间 >= 当前岗位的开始时间，则冲突
+            if (targetPosition.getWorkStartTime() != null && targetPosition.getWorkEndTime() != null
+                    && currentPosition.getWorkStartTime() != null && currentPosition.getWorkEndTime() != null) {
+
+                boolean hasConflict = !targetPosition.getWorkStartTime().isAfter(currentPosition.getWorkEndTime())
+                        && !targetPosition.getWorkEndTime().isBefore(currentPosition.getWorkStartTime());
+
+                if (hasConflict) {
+                    return Result.success(Map.of(
+                            "hasConflict", true,
+                            "conflictPosition", currentPosition.getPositionName(),
+                            "message", "该岗位工作时间与您当前在岗的【" + currentPosition.getPositionName() + "】岗位存在时间冲突"));
+                }
+            }
+        }
+
+        return Result.success(Map.of(
+                "hasConflict", false,
+                "message", "无时间冲突"));
     }
 
     @PostMapping
@@ -89,11 +163,21 @@ public class ApplicationController {
                 worker.setHireDate(LocalDate.parse(hireDateStr));
                 worker.setCheckInTime(LocalTime.parse(checkInTimeStr));
                 worker.setCheckOutTime(LocalTime.parse(checkOutTimeStr));
-                // 不设置workerStatus，由前端根据leaveDate判断
+                worker.setWorkerStatus("在岗"); // 设置在岗状态
 
                 int workerResult = onDutyWorkerMapper.insert(worker);
                 if (workerResult <= 0) {
                     return Result.error("创建在岗员工记录失败");
+                }
+
+                // 减少岗位剩余人数
+                positionMapper.decreaseRemainingPositions(application.getPositionId());
+
+                // 检查剩余人数，如果为0则关闭岗位
+                com.skilal.flex_employ.entity.Position position = positionMapper.findById(application.getPositionId());
+                if (position != null && position.getRemainingPositions() != null
+                        && position.getRemainingPositions() <= 0) {
+                    positionMapper.closePosition(application.getPositionId());
                 }
             } catch (Exception e) {
                 return Result.error("处理入职信息失败: " + e.getMessage());

@@ -54,6 +54,7 @@
         <el-table-column prop="positionId" label="岗位ID" width="100" />
         <el-table-column prop="positionName" label="岗位名称" width="200" />
         <el-table-column prop="resumePdfPath" label="简历路径" width="200" show-overflow-tooltip />
+        <el-table-column prop="applicationNote" label="申请说明" width="200" show-overflow-tooltip />
         <el-table-column prop="status" label="申请状态" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.status === '已申请'" type="warning">已申请</el-tag>
@@ -96,6 +97,7 @@
         <el-descriptions-item label="岗位ID">{{ currentRow.positionId }}</el-descriptions-item>
         <el-descriptions-item label="岗位名称">{{ currentRow.positionName }}</el-descriptions-item>
         <el-descriptions-item label="简历路径">{{ currentRow.resumePdfPath }}</el-descriptions-item>
+        <el-descriptions-item label="申请说明">{{ currentRow.applicationNote || '无' }}</el-descriptions-item>
         <el-descriptions-item label="申请状态">{{ currentRow.status }}</el-descriptions-item>
         <el-descriptions-item label="申请时间">{{ currentRow.applyTime }}</el-descriptions-item>
         <el-descriptions-item label="审批时间">{{ currentRow.approveTime }}</el-descriptions-item>

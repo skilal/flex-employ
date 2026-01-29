@@ -8,7 +8,8 @@ import java.util.List;
 public interface ApplicationMapper {
 
         @Select("<script>" +
-                        "SELECT a.*, u.account AS userName, p.position_name AS positionName " +
+                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, a.application_note AS applicationNote "
+                        +
                         "FROM application a " +
                         "LEFT JOIN user u ON a.user_id = u.user_id " +
                         "LEFT JOIN position p ON a.position_id = p.position_id " +
@@ -30,8 +31,8 @@ public interface ApplicationMapper {
         @Select("SELECT * FROM application WHERE application_id = #{applicationId}")
         Application findById(Long applicationId);
 
-        @Insert("INSERT INTO application (user_id, position_id, resume_pdf_path, status) " +
-                        "VALUES (#{userId}, #{positionId}, #{resumePdfPath}, #{status})")
+        @Insert("INSERT INTO application (user_id, position_id, resume_pdf_path, status, application_note) " +
+                        "VALUES (#{userId}, #{positionId}, #{resumePdfPath}, #{status}, #{applicationNote})")
         @Options(useGeneratedKeys = true, keyProperty = "applicationId")
         int insert(Application application);
 
