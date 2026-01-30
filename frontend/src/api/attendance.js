@@ -43,3 +43,12 @@ export function deleteAttendance(id) {
         method: 'delete'
     })
 }
+
+// 扫码打卡
+export function qrPunch(data) {
+    return request({
+        url: '/attendances/qr-punch',
+        method: 'post',
+        data
+    })
+}

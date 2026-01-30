@@ -118,6 +118,9 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" type="primary" plain @click="handleShowQR(row)">
+              考勤码
+            </el-button>
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -347,6 +350,38 @@
         <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 二维码对话框 -->
+    <el-dialog
+      v-model="qrDialogVisible"
+      title="岗位考勤二维码"
+      width="400px"
+      center
+    >
+      <div class="qr-container" v-if="qrPositionId">
+        <div class="qr-header">
+          <h3>{{ qrPositionName }}</h3>
+          <p>请员工使用手机浏览器或扫码软件扫描此码</p>
+        </div>
+        <div class="qr-content">
+          <qrcode-vue
+            :value="qrValue"
+            :size="240"
+            level="H"
+            render-as="svg"
+          />
+        </div>
+        <div class="qr-footer">
+          <p class="url-tip">{{ qrValue }}</p>
+          <el-alert
+            title="提示：员工扫码后需登录系统方可打卡"
+            type="info"
+            show-icon
+            :closable="false"
+          />
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -356,6 +391,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getPositions, createPosition, updatePosition, deletePosition } from '../../api/position'
 import { getCompanies } from '../../api/company'
+import QrcodeVue from 'qrcode.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -377,6 +413,12 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref(null)
 const submitLoading = ref(false)
+
+// 二维码对话框
+const qrDialogVisible = ref(false)
+const qrPositionId = ref(null)
+const qrPositionName = ref('')
+const qrValue = ref('')
 
 // 公司选项
 const companyOptions = ref([])
@@ -570,6 +612,16 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
+// 显示二维码
+const handleShowQR = (row) => {
+  qrPositionId.value = row.positionId
+  qrPositionName.value = row.positionName
+  // 生成打卡页面的完整URL
+  const baseUrl = window.location.origin
+  qrValue.value = `${baseUrl}/punch/${row.positionId}`
+  qrDialogVisible.value = true
+}
+
 // 删除
 const handleDelete = (row) => {
   ElMessageBox.confirm('确定要删除该岗位吗？', '提示', {
@@ -646,5 +698,49 @@ onMounted(() => {
 
 .action-buttons {
   margin-bottom: 20px;
+}
+
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.qr-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.qr-header h3 {
+  margin: 0 0 8px 0;
+  color: #303133;
+}
+
+.qr-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #909399;
+}
+
+.qr-content {
+  background: #fff;
+  padding: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+}
+
+.qr-footer {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.url-tip {
+  font-size: 12px;
+  color: #c0c4cc;
+  word-break: break-all;
+  margin-bottom: 15px;
+  text-align: center;
 }
 </style>

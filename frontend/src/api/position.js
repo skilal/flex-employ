@@ -9,6 +9,14 @@ export function getPositions(params) {
     })
 }
 
+// 根据ID获取岗位
+export function getPositionById(id) {
+    return request({
+        url: `/positions/${id}`,
+        method: 'get'
+    })
+}
+
 // 获取招聘中的岗位
 export function getRecruitingPositions() {
     return request({

@@ -110,6 +110,11 @@ const routes = [
                 path: 'my-profile',
                 name: 'MyProfile',
                 component: () => import('../views/employee/MyProfile.vue')
+            },
+            {
+                path: '/punch/:positionId',
+                name: 'PunchClock',
+                component: () => import('../views/employee/PunchClock.vue')
             }
         ]
     }

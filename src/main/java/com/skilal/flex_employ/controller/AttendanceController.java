@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attendances")
@@ -22,6 +24,9 @@ public class AttendanceController {
 
     @Autowired
     private com.skilal.flex_employ.service.AttendanceService attendanceService;
+
+    @Autowired
+    private com.skilal.flex_employ.mapper.OnDutyWorkerMapper onDutyWorkerMapper;
 
     @GetMapping
     public Result<List<Attendance>> getAttendances(@RequestParam(required = false) LocalDate attendanceDate,
@@ -103,5 +108,64 @@ public class AttendanceController {
             return Result.success("删除成功");
         }
         return Result.error("删除失败");
+    }
+
+    /**
+     * 二维码扫码打卡接口
+     */
+    @PostMapping("/qr-punch")
+    public Result<String> qrPunch(@RequestBody Map<String, Object> data, @RequestHeader("Authorization") String token) {
+        Long positionId = Long.valueOf(data.get("positionId").toString());
+        String punchType = (String) data.get("punchType"); // check-in 或 check-out
+
+        token = token.replace("Bearer ", "");
+        Long userId = jwtUtil.getUserIdFromToken(token);
+
+        // 1. 查找在该岗位的有效在岗记录
+        com.skilal.flex_employ.entity.OnDutyWorker worker = onDutyWorkerMapper.findByUserIdAndPositionId(userId,
+                positionId);
+        if (worker == null) {
+            return Result.error("打卡失败：您当前未处于该岗位的在岗状态");
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+
+        // 2. 查找今日考勤记录
+        Attendance attendance = attendanceMapper.findByWorkerAndDate(worker.getOnDutyWorkerId(), today);
+
+        if ("check-in".equals(punchType)) {
+            if (attendance != null && attendance.getActualCheckIn() != null) {
+                return Result.error("您今日已完成签到");
+            }
+            if (attendance == null) {
+                attendance = new Attendance();
+                attendance.setOnDutyWorkerId(worker.getOnDutyWorkerId());
+                attendance.setPositionId(positionId);
+                attendance.setAttendanceDate(today);
+            }
+            attendance.setActualCheckIn(now);
+            // 重新判定状态
+            attendance.setAttendanceStatus(attendanceService.calculateStatus(
+                    worker.getOnDutyWorkerId(), today, attendance.getActualCheckIn(), attendance.getActualCheckOut()));
+
+            int result = (attendance.getAttendanceId() == null) ? attendanceMapper.insert(attendance)
+                    : attendanceMapper.update(attendance);
+            return result > 0 ? Result.success("签到成功 (" + now.toString().substring(0, 5) + ")") : Result.error("签到失败");
+
+        } else if ("check-out".equals(punchType)) {
+            if (attendance == null) {
+                return Result.error("签退失败：未找到今日签到记录，请先签到");
+            }
+            attendance.setActualCheckOut(now);
+            // 重新判定状态
+            attendance.setAttendanceStatus(attendanceService.calculateStatus(
+                    worker.getOnDutyWorkerId(), today, attendance.getActualCheckIn(), attendance.getActualCheckOut()));
+
+            int result = attendanceMapper.update(attendance);
+            return result > 0 ? Result.success("签退成功 (" + now.toString().substring(0, 5) + ")") : Result.error("签退失败");
+        }
+
+        return Result.error("未知的打卡类型");
     }
 }

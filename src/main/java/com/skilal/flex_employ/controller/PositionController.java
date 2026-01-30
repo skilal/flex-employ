@@ -30,6 +30,12 @@ public class PositionController {
         return Result.success(positions);
     }
 
+    @GetMapping("/{id}")
+    public Result<Position> getPositionById(@PathVariable Long id) {
+        Position position = positionMapper.findById(id);
+        return Result.success(position);
+    }
+
     @PostMapping
     public Result<String> createPosition(@RequestBody Position position) {
         int result = positionMapper.insert(position);

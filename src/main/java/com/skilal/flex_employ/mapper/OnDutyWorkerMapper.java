@@ -60,4 +60,7 @@ public interface OnDutyWorkerMapper {
         // 检查员工是否已在某岗位在岗
         @Select("SELECT COUNT(*) FROM on_duty_worker WHERE user_id = #{userId} AND position_id = #{positionId} AND worker_status = '在岗'")
         int checkWorkerStatus(@Param("userId") Long userId, @Param("positionId") Long positionId);
+
+        @Select("SELECT * FROM on_duty_worker WHERE user_id = #{userId} AND position_id = #{positionId} AND worker_status = '在岗' LIMIT 1")
+        OnDutyWorker findByUserIdAndPositionId(@Param("userId") Long userId, @Param("positionId") Long positionId);
 }

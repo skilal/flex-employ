@@ -47,15 +47,22 @@ public class AttendanceService {
         }
 
         // 3. 判断缺勤
-        if (actualCheckIn == null || actualCheckOut == null) {
+        if (actualCheckIn == null) {
             return "缺勤";
         }
 
-        // 4. 判定迟到早退
+        // 4. 判定打卡状态
         LocalTime shouldCheckIn = worker.getCheckInTime();
         LocalTime shouldCheckOut = worker.getCheckOutTime();
 
         boolean isLate = actualCheckIn.isAfter(shouldCheckIn);
+
+        // 如果还没有签退，只判断是否迟到
+        if (actualCheckOut == null) {
+            return isLate ? "迟到" : "正常";
+        }
+
+        // 有签退时间，综合判定
         boolean isEarlyLeave = actualCheckOut.isBefore(shouldCheckOut);
 
         if (isLate && isEarlyLeave) {

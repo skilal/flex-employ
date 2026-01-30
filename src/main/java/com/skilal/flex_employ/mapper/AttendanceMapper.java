@@ -69,4 +69,8 @@ public interface AttendanceMapper {
         @Select("SELECT COUNT(*) FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date} AND attendance_id != #{excludeId}")
         int countByWorkerAndDateExcludeId(@Param("onDutyWorkerId") Long onDutyWorkerId,
                         @Param("date") java.time.LocalDate date, @Param("excludeId") Long excludeId);
+
+        @Select("SELECT * FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date} LIMIT 1")
+        Attendance findByWorkerAndDate(@Param("onDutyWorkerId") Long onDutyWorkerId,
+                        @Param("date") java.time.LocalDate date);
 }
