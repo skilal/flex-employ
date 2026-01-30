@@ -10,11 +10,10 @@ export function getPositions(params) {
 }
 
 // 获取招聘中的岗位
-export function getRecruitingPositions(params) {
+export function getRecruitingPositions() {
     return request({
         url: '/positions/recruiting',
-        method: 'get',
-        params
+        method: 'get'
     })
 }
 

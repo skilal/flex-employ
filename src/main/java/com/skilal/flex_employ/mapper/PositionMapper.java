@@ -70,6 +70,6 @@ public interface PositionMapper {
         int decreaseRemainingPositions(Long positionId);
 
         // 关闭岗位
-        @Update("UPDATE position SET position_status = 0 WHERE position_id = #{positionId}")
+        @Update("UPDATE position SET position_status = 2 WHERE position_id = #{positionId}")
         int closePosition(Long positionId);
 }

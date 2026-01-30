@@ -78,6 +78,8 @@
         <el-table-column prop="positionName" label="岗位名称" width="150" />
         <el-table-column prop="workLocation" label="工作地点" width="200" />
         <el-table-column prop="employmentType" label="用工类型" width="120" />
+        <el-table-column prop="workStartTime" label="开始日期" width="120" />
+        <el-table-column prop="workEndTime" label="结束日期" width="120" />
         <el-table-column prop="basicSalary" label="基本工资" width="100">
           <template #default="{ row }">¥{{ row.basicSalary }}</template>
         </el-table-column>
@@ -301,12 +303,20 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="劳务公司ID" prop="laborCompanyId">
-              <el-input-number 
+            <el-form-item label="劳务公司" prop="laborCompanyId">
+              <el-select 
                 v-model="form.laborCompanyId" 
-                :min="1" 
-                style="width: 100%" 
-              />
+                placeholder="请选择劳务公司" 
+                filterable
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in companyOptions"
+                  :key="item.companyId"
+                  :label="`[${item.companyId}] ${item.companyName}`"
+                  :value="item.companyId"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -345,6 +355,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getPositions, createPosition, updatePosition, deletePosition } from '../../api/position'
+import { getCompanies } from '../../api/company'
 
 // 搜索表单
 const searchForm = reactive({
@@ -366,6 +377,9 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref(null)
 const submitLoading = ref(false)
+
+// 公司选项
+const companyOptions = ref([])
 
 // 薪资周期提示
 const payCycleTip = ref('')
@@ -471,33 +485,31 @@ const formatWorkingDays = (daysStr) => {
   return daysStr.split(',').map(d => dayMap[d]).join(', ')
 }
 
-// 加载数据
 const loadData = async () => {
   loading.value = true
   try {
-    // 只传筛选参数，不传分页参数
-    const params = {
-      positionName: searchForm.positionName || undefined,
-      workLocation: searchForm.workLocation || undefined,
-      employmentType: searchForm.employmentType || undefined,
-      positionStatus: searchForm.positionStatus !== null ? searchForm.positionStatus : undefined
-    }
-    
-    const res = await getPositions(params)
-    
-    // 后端返回的是完整数据列表，需要在前端进行分页
-   const allData = res.data || []
-    total.value = allData.length
-    
-    // 客户端分页：计算当前页应该显示的数据
-    const start = (currentPage.value - 1) * pageSize.value
-    const end = start + pageSize.value
-    tableData.value = allData.slice(start, end)
+    const res = await getPositions({
+      ...searchForm,
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
+    })
+    tableData.value = res.data || []
+    total.value = res.total || 0
   } catch (error) {
-    console.error('加载数据失败:', error)
-    ElMessage.error('加载数据失败')
+    console.error('加载列表失败:', error)
+    ElMessage.error('加载岗位列表失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 加载公司列表
+const loadCompanies = async () => {
+  try {
+    const res = await getCompanies()
+    companyOptions.value = res.data || []
+  } catch (error) {
+    console.error('加载公司失败:', error)
   }
 }
 
@@ -619,6 +631,7 @@ const handleCurrentChange = (val) => {
 
 onMounted(() => {
   loadData()
+  loadCompanies()
 })
 </script>
 

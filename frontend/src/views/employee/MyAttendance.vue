@@ -36,14 +36,21 @@
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="4">
         <el-card>
           <el-statistic title="本月迟到次数" :value="statistics.lateTimes">
             <template #suffix>次</template>
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="4">
+        <el-card>
+          <el-statistic title="本月早退次数" :value="statistics.earlyTimes">
+            <template #suffix>次</template>
+          </el-statistic>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
         <el-card>
           <el-statistic title="本月请假天数" :value="statistics.leaveDays">
             <template #suffix>天</template>
@@ -68,6 +75,7 @@
             <el-tag v-if="row.attendanceStatus === '正常'" type="success">正常</el-tag>
             <el-tag v-else-if="row.attendanceStatus === '迟到'" type="warning">迟到</el-tag>
             <el-tag v-else-if="row.attendanceStatus === '早退'" type="warning">早退</el-tag>
+            <el-tag v-else-if="row.attendanceStatus === '迟到且早退'" type="warning">迟到且早退</el-tag>
             <el-tag v-else-if="row.attendanceStatus === '请假'" type="info">请假</el-tag>
             <el-tag v-else type="danger">缺勤</el-tag>
           </template>
@@ -100,6 +108,7 @@ const statistics = reactive({
   normalDays: 0,
   absentDays: 0,
   lateTimes: 0,
+  earlyTimes: 0,
   leaveDays: 0
 })
 
@@ -128,7 +137,12 @@ const loadData = async () => {
 const calculateStatistics = () => {
   statistics.normalDays = tableData.value.filter(item => item.attendanceStatus === '正常').length
   statistics.absentDays = tableData.value.filter(item => item.attendanceStatus === '缺勤').length
-  statistics.lateTimes = tableData.value.filter(item => item.attendanceStatus === '迟到').length
+  statistics.lateTimes = tableData.value.filter(item => 
+    item.attendanceStatus === '迟到' || item.attendanceStatus === '迟到且早退'
+  ).length
+  statistics.earlyTimes = tableData.value.filter(item => 
+    item.attendanceStatus === '早退' || item.attendanceStatus === '迟到且早退'
+  ).length
   statistics.leaveDays = tableData.value.filter(item => item.attendanceStatus === '请假').length
 }
 

@@ -30,14 +30,21 @@ public interface AttendanceMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+        @Select("<script>" +
+                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position p ON a.position_id = p.position_id " +
-                        "WHERE w.user_id = #{userId} ORDER BY a.attendance_date DESC")
-        List<Attendance> findByUserId(Long userId);
+                        "WHERE w.user_id = #{userId} " +
+                        "<if test='startDate != null'> AND a.attendance_date &gt;= #{startDate} </if>" +
+                        "<if test='endDate != null'> AND a.attendance_date &lt;= #{endDate} </if>" +
+                        "ORDER BY a.attendance_date DESC" +
+                        "</script>")
+        List<Attendance> findByUserId(@Param("userId") Long userId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
 
         @Select("SELECT * FROM attendance WHERE attendance_id = #{attendanceId}")
         Attendance findById(Long attendanceId);

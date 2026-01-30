@@ -37,6 +37,7 @@ public class WorkerController {
 
     @PostMapping
     public Result<String> createWorker(@RequestBody OnDutyWorker worker) {
+        deduceWorkerStatus(worker);
         int result = workerMapper.insert(worker);
         if (result > 0) {
             return Result.success("添加成功");
@@ -47,11 +48,20 @@ public class WorkerController {
     @PutMapping("/{id}")
     public Result<String> updateWorker(@PathVariable Long id, @RequestBody OnDutyWorker worker) {
         worker.setOnDutyWorkerId(id);
+        deduceWorkerStatus(worker);
         int result = workerMapper.update(worker);
         if (result > 0) {
             return Result.success("更新成功");
         }
         return Result.error("更新失败");
+    }
+
+    private void deduceWorkerStatus(OnDutyWorker worker) {
+        if (worker.getLeaveDate() != null) {
+            worker.setWorkerStatus("已结束");
+        } else if (worker.getHireDate() != null) {
+            worker.setWorkerStatus("在岗");
+        }
     }
 
     @DeleteMapping("/{id}")

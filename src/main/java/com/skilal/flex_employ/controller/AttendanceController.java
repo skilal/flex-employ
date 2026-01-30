@@ -34,10 +34,12 @@ public class AttendanceController {
     }
 
     @GetMapping("/my")
-    public Result<List<Attendance>> getMyAttendances(@RequestHeader("Authorization") String token) {
+    public Result<List<Attendance>> getMyAttendances(@RequestHeader("Authorization") String token,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
         token = token.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);
-        List<Attendance> attendances = attendanceMapper.findByUserId(userId);
+        List<Attendance> attendances = attendanceMapper.findByUserId(userId, startDate, endDate);
         return Result.success(attendances);
     }
 

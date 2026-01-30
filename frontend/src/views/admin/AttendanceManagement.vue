@@ -33,6 +33,7 @@
             <el-option label="正常" value="正常" />
             <el-option label="迟到" value="迟到" />
             <el-option label="早退" value="早退" />
+            <el-option label="迟到且早退" value="迟到且早退" />
             <el-option label="缺勤" value="缺勤" />
             <el-option label="请假" value="请假" />
           </el-select>
@@ -76,6 +77,7 @@
             <el-tag v-if="row.attendanceStatus === '正常'" type="success">正常</el-tag>
             <el-tag v-else-if="row.attendanceStatus === '迟到'" type="warning">迟到</el-tag>
             <el-tag v-else-if="row.attendanceStatus === '早退'" type="warning">早退</el-tag>
+            <el-tag v-else-if="row.attendanceStatus === '迟到且早退'" type="warning">迟到且早退</el-tag>
             <el-tag v-else-if="row.attendanceStatus === '请假'" type="info">请假</el-tag>
             <el-tag v-else type="danger">缺勤</el-tag>
           </template>

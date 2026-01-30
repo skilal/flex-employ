@@ -160,10 +160,13 @@
         </el-form-item>
 
         <el-form-item label="员工状态" prop="workerStatus">
-          <el-select v-model="form.workerStatus" placeholder="请选择" style="width: 100%">
+          <el-select v-model="form.workerStatus" placeholder="自动判定" style="width: 100%" disabled>
             <el-option label="在岗" value="在岗" />
             <el-option label="已结束" value="已结束" />
           </el-select>
+          <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+            💡 状态由日期自动判定：设置离职日期后自动变为“已结束”
+          </div>
         </el-form-item>
       </el-form>
 
