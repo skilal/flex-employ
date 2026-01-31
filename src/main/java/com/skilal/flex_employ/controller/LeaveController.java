@@ -57,6 +57,16 @@ public class LeaveController {
             return Result.error("您在该岗位不是在岗状态，无法申请请假");
         }
 
+        // 验证日期重叠：检查是否存在状态为“申请中”且日期有交集的记录
+        int overlapCount = leaveRequestMapper.countOverlappingRequests(
+                userId,
+                leaveRequest.getStartDate(),
+                leaveRequest.getEndDate());
+
+        if (overlapCount > 0) {
+            return Result.error("提交失败：您在所选日期范围内已存在“申请中”的请假记录，请勿重复申请");
+        }
+
         leaveRequest.setUserId(userId);
         leaveRequest.setStatus("申请中");
         int result = leaveRequestMapper.insert(leaveRequest);

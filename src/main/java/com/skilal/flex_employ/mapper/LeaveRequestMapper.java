@@ -51,4 +51,12 @@ public interface LeaveRequestMapper {
                         "WHERE user_id = #{userId} AND status IN ('已通过', '同意') " +
                         "AND #{date} BETWEEN start_date AND end_date")
         int checkLeave(@Param("userId") Long userId, @Param("date") java.time.LocalDate date);
+
+        // 检查用户是否存在状态为“申请中”且日期重叠的记录
+        @Select("SELECT COUNT(*) FROM leave_request " +
+                        "WHERE user_id = #{userId} AND status = '申请中' " +
+                        "AND (start_date <= #{endDate} AND end_date >= #{startDate})")
+        int countOverlappingRequests(@Param("userId") Long userId,
+                        @Param("startDate") java.time.LocalDate startDate,
+                        @Param("endDate") java.time.LocalDate endDate);
 }
