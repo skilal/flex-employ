@@ -32,6 +32,8 @@
             v-model="searchForm.status" 
             placeholder="申请状态" 
             clearable
+            @change="handleSearch"
+            @clear="handleSearch"
             style="width: 150px"
           >
             <el-option label="已申请" value="已申请" />
@@ -124,24 +126,6 @@
             value-format="YYYY-MM-DD"
           />
         </el-form-item>
-        <el-form-item label="应签到时间" prop="checkInTime">
-          <el-time-picker
-            v-model="approveForm.checkInTime"
-            placeholder="选择应签到时间"
-            style="width: 100%"
-            format="HH:mm"
-            value-format="HH:mm"
-          />
-        </el-form-item>
-        <el-form-item label="应签退时间" prop="checkOutTime">
-          <el-time-picker
-            v-model="approveForm.checkOutTime"
-            placeholder="选择应签退时间"
-            style="width: 100%"
-            format="HH:mm"
-            value-format="HH:mm"
-          />
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="approveVisible = false">取消</el-button>
@@ -178,15 +162,11 @@ const approveFormRef = ref(null)
 const approveLoading = ref(false)
 const currentApproveRow = ref(null)
 const approveForm = reactive({
-  hireDate: '',
-  checkInTime: '',
-  checkOutTime: ''
+  hireDate: ''
 })
 
 const approveRules = {
-  hireDate: [{ required: true, message: '请选择入职日期', trigger: 'change' }],
-  checkInTime: [{ required: true, message: '请选择应签到时间', trigger: 'change' }],
-  checkOutTime: [{ required: true, message: '请选择应签退时间', trigger: 'change' }]
+  hireDate: [{ required: true, message: '请选择入职日期', trigger: 'change' }]
 }
 
 // 加载数据
@@ -236,8 +216,6 @@ const handleApprove = (row, status) => {
     // 通过时打开对话框填写入职信息
     currentApproveRow.value = row
     approveForm.hireDate = row.workStartTime || ''
-    approveForm.checkInTime = '08:00'
-    approveForm.checkOutTime = '17:00'
     approveVisible.value = true
   } else {
     // 拒绝时直接确认
@@ -266,9 +244,7 @@ const handleApproveSubmit = () => {
       try {
         await approveApplication(currentApproveRow.value.applicationId, {
           status: '已通过',
-          hireDate: approveForm.hireDate,
-          checkInTime: approveForm.checkInTime + ':00',
-          checkOutTime: approveForm.checkOutTime + ':00'
+          hireDate: approveForm.hireDate
         })
         ElMessage.success('审批通过成功')
         approveVisible.value = false

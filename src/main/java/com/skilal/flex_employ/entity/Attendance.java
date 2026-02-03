@@ -19,4 +19,6 @@ public class Attendance {
     private String positionName;
     private java.time.LocalDate workStartTime;
     private java.time.LocalDate workEndTime;
+    private LocalTime checkInTime;
+    private LocalTime checkOutTime;
 }

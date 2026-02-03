@@ -8,10 +8,12 @@ import java.util.List;
 public interface OnDutyWorkerMapper {
 
         @Select("<script>" +
-                        "SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
-                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
+                        "SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate, "
+                        +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
+                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
+                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay, " +
                         "u.account AS userName, p.position_name AS positionName " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -29,28 +31,28 @@ public interface OnDutyWorkerMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
-                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
-                        "p.position_name AS positionName, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays "
+        @Select("SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
+                        "p.position_name AS positionName, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, "
                         +
+                        "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, "
+                        +
+                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
                         "WHERE w.user_id = #{userId}")
         List<OnDutyWorker> findByUserId(Long userId);
 
-        @Select("SELECT w.*, w.worker_status AS workerStatus, w.check_in_time AS checkInTime, " +
-                        "w.check_out_time AS checkOutTime, w.hire_date AS hireDate, w.leave_date AS leaveDate " +
+        @Select("SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate " +
                         "FROM on_duty_worker w WHERE on_duty_worker_id = #{onDutyWorkerId}")
         OnDutyWorker findById(Long onDutyWorkerId);
 
-        @Insert("INSERT INTO on_duty_worker (user_id, position_id, check_in_time, check_out_time, hire_date, leave_date, worker_status) "
-                        +
-                        "VALUES (#{userId}, #{positionId}, #{checkInTime}, #{checkOutTime}, #{hireDate}, #{leaveDate}, #{workerStatus})")
+        @Insert("INSERT INTO on_duty_worker (user_id, position_id, hire_date, leave_date, worker_status) " +
+                        "VALUES (#{userId}, #{positionId}, #{hireDate}, #{leaveDate}, #{workerStatus})")
         @Options(useGeneratedKeys = true, keyProperty = "onDutyWorkerId")
         int insert(OnDutyWorker worker);
 
-        @Update("UPDATE on_duty_worker SET check_in_time = #{checkInTime}, check_out_time = #{checkOutTime}, " +
-                        "hire_date = #{hireDate}, leave_date = #{leaveDate}, worker_status = #{workerStatus} " +
+        @Update("UPDATE on_duty_worker SET hire_date = #{hireDate}, leave_date = #{leaveDate}, worker_status = #{workerStatus} "
+                        +
                         "WHERE on_duty_worker_id = #{onDutyWorkerId}")
         int update(OnDutyWorker worker);
 

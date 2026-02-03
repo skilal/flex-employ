@@ -39,6 +39,14 @@
         <el-descriptions-item label="打卡下班时间">{{ currentRow.checkOutTime }}</el-descriptions-item>
         <el-descriptions-item label="入职日期">{{ currentRow.hireDate }}</el-descriptions-item>
         <el-descriptions-item label="离职日期">{{ currentRow.leaveDate || '暂无' }}</el-descriptions-item>
+        <el-descriptions-item label="计费方式">
+          <el-tag size="small" :type="currentRow.billingMethod === 1 ? 'warning' : 'success'">
+            {{ currentRow.billingMethod === 1 ? '按小时计费' : '按天计费' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="加班费">
+          {{ currentRow.overtimePay ? `¥${currentRow.overtimePay}/时` : '无加班费' }}
+        </el-descriptions-item>
       </el-descriptions>
 
       <el-divider content-position="left">工作时间说明</el-divider>

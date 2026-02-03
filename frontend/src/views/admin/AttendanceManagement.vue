@@ -70,6 +70,8 @@
           </template>
         </el-table-column>
         <el-table-column prop="attendanceDate" label="考勤日期" width="120" />
+        <el-table-column prop="checkInTime" label="应签到时间" width="120" />
+        <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
         <el-table-column prop="actualCheckIn" label="实际签到时间" width="150" />
         <el-table-column prop="actualCheckOut" label="实际签退时间" width="150" />
         <el-table-column prop="attendanceStatus" label="考勤状态" width="100">
@@ -261,9 +263,24 @@ const form = reactive({
 })
 
 const rules = {
-  onDutyWorkerId: [{ required: true, message: '请输入在岗员工ID', trigger: 'blur' }],
-  positionId: [{ required: true, message: '请输入岗位ID', trigger: 'blur' }],
+  onDutyWorkerId: [{ required: true, message: '请选择在岗员工', trigger: 'change' }],
   attendanceDate: [{ required: true, message: '请选择考勤日期', trigger: 'change' }]
+}
+
+// 处理员工选择变化
+const handleWorkerChange = (workerId) => {
+  const worker = workers.value.find(w => w.onDutyWorkerId === workerId)
+  if (worker) {
+    form.positionId = worker.positionId
+    form.userName = worker.userName || ''
+    form.positionName = worker.positionName || ''
+    form.checkInTime = worker.checkInTime || ''
+    form.checkOutTime = worker.checkOutTime || ''
+    form.hireDate = worker.hireDate || ''
+    form.workStartTime = worker.workStartTime || ''
+    form.workEndTime = worker.workEndTime || ''
+    form.workingDays = worker.workingDays || ''
+  }
 }
 
 const loadData = async () => {
@@ -339,29 +356,15 @@ const handleAdd = () => {
     hireDate: '',
     workStartTime: '',
     workEndTime: '',
-    attendanceDate: '',
+    attendanceDate: new Date().toISOString().split('T')[0],
     actualCheckIn: '',
     actualCheckOut: '',
-    attendanceStatus: '缺勤',
+    attendanceStatus: '正常',
     workingDays: ''
   })
   dialogVisible.value = true
 }
 
-const handleWorkerChange = (val) => {
-  const worker = workers.value.find(w => w.onDutyWorkerId === val)
-  if (worker) {
-    form.positionId = worker.positionId
-    form.userName = worker.userName
-    form.positionName = worker.positionName
-    form.checkInTime = worker.checkInTime
-    form.checkOutTime = worker.checkOutTime
-    form.hireDate = worker.hireDate
-    form.workStartTime = worker.workStartTime
-    form.workEndTime = worker.workEndTime
-    form.workingDays = worker.workingDays
-  }
-}
 
 const handleEdit = (row) => {
   dialogTitle.value = '编辑考勤记录'

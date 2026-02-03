@@ -90,6 +90,20 @@
             <el-tag size="small" type="info">{{ formatWorkingDays(row.workingDays) }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="checkInTime" label="应签到时间" width="120" />
+        <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
+        <el-table-column prop="billingMethod" label="计费方式" width="100">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.billingMethod === 1 ? 'warning' : 'success'">
+              {{ row.billingMethod === 1 ? '按小时' : '按天' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="overtimePay" label="加班费" width="100">
+          <template #default="{ row }">
+            {{ row.overtimePay ? `¥${row.overtimePay}/时` : '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="weeklyFreq" label="每周天数" width="100" />
         <el-table-column label="劳务公司" width="200">
           <template #default="{ row }">
@@ -176,7 +190,7 @@
                 v-model="form.employmentType" 
                 placeholder="请选择用工类型" 
                 style="width: 100%"
-                @change="handleEmploymentTypeChange"
+                @change="handleTypeChange"
               >
                 <el-option label="全日制用工" value="全日制用工" />
                 <el-option label="非全日制用工" value="非全日制用工" />
@@ -275,6 +289,53 @@
             <el-checkbox :label="7">周日</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="应签到时间" prop="checkInTime">
+              <el-time-picker
+                v-model="form.checkInTime"
+                format="HH:mm"
+                value-format="HH:mm:ss"
+                placeholder="选择应签到时间"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="应签退时间" prop="checkOutTime">
+              <el-time-picker
+                v-model="form.checkOutTime"
+                format="HH:mm"
+                value-format="HH:mm:ss"
+                placeholder="选择应签退时间"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="计费方式" prop="billingMethod">
+              <el-radio-group v-model="form.billingMethod">
+                <el-radio :label="1">按小时</el-radio>
+                <el-radio :label="2">按天</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="加班费用" prop="overtimePay" v-if="form.billingMethod === 2 || form.employmentType === '全日制用工'">
+              <el-input-number 
+                v-model="form.overtimePay" 
+                :min="0" 
+                :precision="2"
+                style="width: 100%" 
+                placeholder="元/小时 (可选)"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
         
         <el-row :gutter="20">
           <el-col :span="12">
@@ -447,11 +508,19 @@ const form = reactive({
   totalPositions: 1,        // 招聘人数默认1
   remainingPositions: 1,     // 剩余人数默认1
   workingDays: '',
-  workingDaysList: [1, 2, 3, 4, 5]
+  workingDaysList: [1, 2, 3, 4, 5],
+  billingMethod: 2,
+  overtimePay: null,
+  checkInTime: '08:00:00',   // 应签到时间默认 08:00
+  checkOutTime: '17:00:00'   // 应签退时间默认 17:00
 })
 
 const rules = {
   positionName: [{ required: true, message: '请输入岗位名称', trigger: 'blur' }],
+  totalPositions: [{ required: true, message: '请输入招聘总人数', trigger: 'blur' }],
+  remainingPositions: [{ required: true, message: '请输入剩余人数', trigger: 'blur' }],
+  checkInTime: [{ required: true, message: '请选择应签到时间', trigger: 'change' }],
+  checkOutTime: [{ required: true, message: '请选择应签退时间', trigger: 'change' }],
   workLocation: [{ required: true, message: '请输入工作地点', trigger: 'blur' }],
   regionCode: [{ required: true, message: '请输入地区代码', trigger: 'blur' }],
   employmentType: [{ required: true, message: '请选择用工类型', trigger: 'change' }],
@@ -593,7 +662,9 @@ const handleAdd = () => {
     totalPositions: 1,
     remainingPositions: 1,
     workingDays: '',
-    workingDaysList: [1, 2, 3, 4, 5]
+    workingDaysList: [1, 2, 3, 4, 5],
+    billingMethod: 2,
+    overtimePay: null
   })
   handleWorkingDaysChange()
   payCycleTip.value = ''
@@ -641,6 +712,14 @@ const handleDelete = (row) => {
 }
 
 // 提交
+const handleTypeChange = (val) => {
+  if (val === '非全日制用工') {
+    form.billingMethod = 1
+  } else if (val === '全日制用工') {
+    form.billingMethod = 2
+  }
+}
+
 const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (valid) {

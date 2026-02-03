@@ -9,8 +9,6 @@ public class OnDutyWorker {
     private Long onDutyWorkerId;
     private Long userId;
     private Long positionId;
-    private LocalTime checkInTime;
-    private LocalTime checkOutTime;
     private LocalDate hireDate;
     private LocalDate leaveDate;
     private String workerStatus;
@@ -21,4 +19,8 @@ public class OnDutyWorker {
     private LocalDate workStartTime;
     private LocalDate workEndTime;
     private String workingDays;
+    private LocalTime checkInTime;
+    private LocalTime checkOutTime;
+    private Integer billingMethod; // 计费方式
+    private java.math.BigDecimal overtimePay; // 加班费
 }

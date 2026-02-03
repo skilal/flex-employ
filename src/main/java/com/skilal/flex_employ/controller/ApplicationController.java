@@ -95,19 +95,38 @@ public class ApplicationController {
                 continue;
             }
 
-            // 检查工作时间是否冲突（日期范围重叠）
-            // 如果目标岗位的开始时间 <= 当前岗位的结束时间 且 目标岗位的结束时间 >= 当前岗位的开始时间，则冲突
+            // 检查日期范围是否重叠
             if (targetPosition.getWorkStartTime() != null && targetPosition.getWorkEndTime() != null
                     && currentPosition.getWorkStartTime() != null && currentPosition.getWorkEndTime() != null) {
 
-                boolean hasConflict = !targetPosition.getWorkStartTime().isAfter(currentPosition.getWorkEndTime())
+                boolean dateOverlap = !targetPosition.getWorkStartTime().isAfter(currentPosition.getWorkEndTime())
                         && !targetPosition.getWorkEndTime().isBefore(currentPosition.getWorkStartTime());
 
-                if (hasConflict) {
-                    return Result.success(Map.of(
-                            "hasConflict", true,
-                            "conflictPosition", currentPosition.getPositionName(),
-                            "message", "该岗位工作时间与您当前在岗的【" + currentPosition.getPositionName() + "】岗位存在时间冲突"));
+                if (dateOverlap) {
+                    // 如果日期有重叠，进一步检查时段是否有交集
+                    LocalTime tStart1 = targetPosition.getCheckInTime();
+                    LocalTime tEnd1 = targetPosition.getCheckOutTime();
+                    LocalTime tStart2 = currentPosition.getCheckInTime();
+                    LocalTime tEnd2 = currentPosition.getCheckOutTime();
+
+                    if (tStart1 != null && tEnd1 != null && tStart2 != null && tEnd2 != null) {
+                        // 时段冲突判定算法：!(结束1 <= 开始2 || 结束2 <= 开始1)
+                        boolean timeOverlap = tStart1.isBefore(tEnd2) && tEnd1.isAfter(tStart2);
+
+                        if (timeOverlap) {
+                            return Result.success(Map.of(
+                                    "hasConflict", true,
+                                    "conflictPosition", currentPosition.getPositionName(),
+                                    "message",
+                                    "该岗位工作时间与您在岗的【" + currentPosition.getPositionName() + "】岗位存在冲突 (日期重叠且时段交叠)"));
+                        }
+                    } else {
+                        // 如果任一岗位没有设置时段，则保守起见认为凡是日期重叠即为冲突
+                        return Result.success(Map.of(
+                                "hasConflict", true,
+                                "conflictPosition", currentPosition.getPositionName(),
+                                "message", "该岗位工作时间与您在岗的【" + currentPosition.getPositionName() + "】岗位在日期上存在冲突"));
+                    }
                 }
             }
         }
@@ -157,12 +176,8 @@ public class ApplicationController {
 
                 // 从请求中获取入职信息
                 String hireDateStr = (String) data.get("hireDate");
-                String checkInTimeStr = (String) data.get("checkInTime");
-                String checkOutTimeStr = (String) data.get("checkOutTime");
 
                 worker.setHireDate(LocalDate.parse(hireDateStr));
-                worker.setCheckInTime(LocalTime.parse(checkInTimeStr));
-                worker.setCheckOutTime(LocalTime.parse(checkOutTimeStr));
                 worker.setWorkerStatus("在岗"); // 设置在岗状态
 
                 int workerResult = onDutyWorkerMapper.insert(worker);

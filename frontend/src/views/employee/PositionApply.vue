@@ -38,9 +38,9 @@
             @clear="handleSearch"
             style="width: 150px"
           >
-            <el-option label="兼职" value="兼职" />
-            <el-option label="全职" value="全职" />
-            <el-option label="临时工" value="临时工" />
+            <el-option label="全日制用工" value="全日制用工" />
+            <el-option label="非全日制用工" value="非全日制用工" />
+            <el-option label="项目制用工" value="项目制用工" />
           </el-select>
         </el-form-item>
         <el-form-item>

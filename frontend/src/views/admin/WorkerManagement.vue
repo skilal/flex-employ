@@ -32,6 +32,8 @@
             v-model="searchForm.workerStatus" 
             placeholder="员工状态" 
             clearable
+            @change="handleSearch"
+            @clear="handleSearch"
             style="width: 150px"
           >
             <el-option label="在岗" value="在岗" />
@@ -111,32 +113,36 @@
         :rules="rules"
         label-width="120px"
       >
-        <el-form-item label="用户ID" prop="userId">
-          <el-input-number v-model="form.userId" :min="1" style="width: 100%" />
-        </el-form-item>
-
-        <el-form-item label="岗位ID" prop="positionId">
-          <el-input-number v-model="form.positionId" :min="1" style="width: 100%" />
-        </el-form-item>
-
-        <el-form-item label="打卡上班时间" prop="checkInTime">
-          <el-time-picker
-            v-model="form.checkInTime"
-            format="HH:mm:ss"
-            value-format="HH:mm:ss"
-            placeholder="选择时间"
+        <el-form-item label="用户" prop="userId">
+          <el-select
+            v-model="form.userId"
+            placeholder="请选择用户"
+            filterable
             style="width: 100%"
-          />
+          >
+            <el-option
+              v-for="item in users"
+              :key="item.userId"
+              :label="`${item.account} (ID:${item.userId})`"
+              :value="item.userId"
+            />
+          </el-select>
         </el-form-item>
 
-        <el-form-item label="打卡下班时间" prop="checkOutTime">
-          <el-time-picker
-            v-model="form.checkOutTime"
-            format="HH:mm:ss"
-            value-format="HH:mm:ss"
-            placeholder="选择时间"
+        <el-form-item label="岗位" prop="positionId">
+          <el-select
+            v-model="form.positionId"
+            placeholder="请选择岗位"
+            filterable
             style="width: 100%"
-          />
+          >
+            <el-option
+              v-for="item in positions"
+              :key="item.positionId"
+              :label="`${item.positionName} (ID:${item.positionId})`"
+              :value="item.positionId"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="入职日期" prop="hireDate">
@@ -181,8 +187,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 import { getWorkers, createWorker, updateWorker, deleteWorker } from '../../api/worker'
+import { getUsers } from '../../api/user'
+import { getPositions } from '../../api/position'
 
 const searchForm = reactive({
   userName: '',
@@ -195,6 +203,8 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const users = ref([]) // 用户列表
+const positions = ref([]) // 岗位列表
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -205,8 +215,6 @@ const form = reactive({
   onDutyWorkerId: null,
   userId: null,
   positionId: null,
-  checkInTime: '',
-  checkOutTime: '',
   hireDate: '',
   leaveDate: '',
   workerStatus: '在岗'
@@ -248,6 +256,26 @@ const loadData = async () => {
 const handleSearch = () => {
   currentPage.value = 1
   loadData()
+}
+
+// 加载用户列表
+const loadUsers = async () => {
+  try {
+    const res = await getUsers({})
+    users.value = res.data || []
+  } catch (error) {
+    console.error('加载用户列表失败:', error)
+  }
+}
+
+// 加载岗位列表
+const loadPositions = async () => {
+  try {
+    const res = await getPositions({})
+    positions.value = res.data || []
+  } catch (error) {
+    console.error('加载岗位列表失败:', error)
+  }
 }
 
 const handleReset = () => {
@@ -335,6 +363,8 @@ const handleCurrentChange = (val) => {
 
 onMounted(() => {
   loadData()
+  loadUsers()
+  loadPositions()
 })
 </script>
 

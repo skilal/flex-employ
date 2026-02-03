@@ -10,7 +10,8 @@ public interface AttendanceMapper {
 
         @Select("<script>" +
                         "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
-                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
+                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -32,7 +33,8 @@ public interface AttendanceMapper {
 
         @Select("<script>" +
                         "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
-                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
+                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +

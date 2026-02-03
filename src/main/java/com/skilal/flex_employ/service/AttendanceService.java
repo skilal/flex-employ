@@ -51,9 +51,14 @@ public class AttendanceService {
             return "缺勤";
         }
 
-        // 4. 判定打卡状态
-        LocalTime shouldCheckIn = worker.getCheckInTime();
-        LocalTime shouldCheckOut = worker.getCheckOutTime();
+        // 4. 判定打卡状态（从岗位获取标准时间）
+        com.skilal.flex_employ.entity.Position position = positionMapper.findById(worker.getPositionId());
+        if (position == null || position.getCheckInTime() == null || position.getCheckOutTime() == null) {
+            return "未知";
+        }
+
+        LocalTime shouldCheckIn = position.getCheckInTime();
+        LocalTime shouldCheckOut = position.getCheckOutTime();
 
         boolean isLate = actualCheckIn.isAfter(shouldCheckIn);
 

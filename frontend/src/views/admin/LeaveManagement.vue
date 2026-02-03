@@ -21,8 +21,6 @@
             <el-option label="申请中" value="申请中" />
             <el-option label="已通过" value="已通过" />
             <el-option label="已拒绝" value="已拒绝" />
-            <el-option label="同意" value="同意" />
-            <el-option label="拒绝" value="拒绝" />
           </el-select>
         </el-form-item>
         <el-form-item>
