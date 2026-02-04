@@ -2,7 +2,7 @@
   <el-container class="admin-layout">
     <el-aside width="200px">
       <div class="sidebar-header">
-        <h3>人力服务公司<br>薪资结算系统</h3>
+        <h3>灵活用工平台</h3>
         <p>管理员</p>
       </div>
       <el-menu
@@ -34,15 +34,15 @@
         </el-menu-item>
         <el-menu-item index="/admin/salary">
           <el-icon><Coin /></el-icon>
-          <span>薪资管理</span>
+          <span>薪资结算管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/salary-configs">
+          <el-icon><Setting /></el-icon>
+          <span>薪资配置管理</span>
         </el-menu-item>
         <el-menu-item index="/admin/companies">
           <el-icon><OfficeBuilding /></el-icon>
           <span>合作公司管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/users">
-          <el-icon><User /></el-icon>
-          <span>用户管理</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -70,7 +70,7 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-import { Document, List, User, Calendar, Clock, Coin, OfficeBuilding } from '@element-plus/icons-vue'
+import { Document, List, User, Calendar, Clock, Coin, OfficeBuilding, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -85,11 +85,11 @@ const pageTitle = computed(() => {
     '/admin/positions': '岗位管理',
     '/admin/applications': '岗位申请管理',
     '/admin/workers': '在岗员工管理',
-    '/admin/workers': '在岗员工管理',
-    '/admin/attendances': '考勤记录管理',
-    '/admin/salaries': '工资管理',
-    '/admin/companies': '合作公司管理',
-    '/admin/users': '用户管理'
+    '/admin/leaves': '请假管理',
+    '/admin/attendance': '考勤记录管理',
+    '/admin/salary': '薪资结算管理流水',
+    '/admin/salary-configs': '薪资配置模版管理',
+    '/admin/companies': '合作公司管理'
   }
   return titleMap[route.path] || '管理后台'
 })

@@ -13,7 +13,6 @@ public interface OnDutyWorkerMapper {
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay, " +
                         "u.account AS userName, p.position_name AS positionName " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -34,9 +33,8 @@ public interface OnDutyWorkerMapper {
         @Select("SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
                         "p.position_name AS positionName, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, "
                         +
-                        "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, "
+                        "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime "
                         +
-                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
                         "WHERE w.user_id = #{userId}")
@@ -65,4 +63,7 @@ public interface OnDutyWorkerMapper {
 
         @Select("SELECT * FROM on_duty_worker WHERE user_id = #{userId} AND position_id = #{positionId} AND worker_status = '在岗' LIMIT 1")
         OnDutyWorker findByUserIdAndPositionId(@Param("userId") Long userId, @Param("positionId") Long positionId);
+
+        @Select("SELECT * FROM on_duty_worker WHERE worker_status = '在岗'")
+        List<OnDutyWorker> findAllActive();
 }

@@ -11,10 +11,11 @@ public interface PositionMapper {
                         "SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay, " +
+                        "p.salary_config_id AS salaryConfigId, sc.config_name AS salaryConfigName, " +
                         "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
                         +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE 1=1 " +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +
@@ -33,28 +34,28 @@ public interface PositionMapper {
         @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay, " +
+                        "p.salary_config_id AS salaryConfigId, sc.config_name AS salaryConfigName, " +
                         "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
                         +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE p.position_status = 1 ORDER BY p.created_at DESC")
         List<Position> findRecruiting();
 
         @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "p.billing_method AS billingMethod, p.overtime_pay AS overtimePay, " +
+                        "p.salary_config_id AS salaryConfigId, " +
                         "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions FROM position p WHERE position_id = #{positionId}")
         Position findById(Long positionId);
 
         @Insert("INSERT INTO position (position_name, work_location, region_code, duty_desc, work_start_time, " +
-                        "work_end_time, employment_type, labor_company_id, basic_salary, pay_cycle, salary_desc, " +
-                        "daily_hours, weekly_freq, working_days, check_in_time, check_out_time, billing_method, overtime_pay, position_status, responsible_id, special_note, creator_id, total_positions, remaining_positions) "
+                        "work_end_time, employment_type, labor_company_id, salary_config_id, salary_desc, " +
+                        "daily_hours, weekly_freq, working_days, check_in_time, check_out_time, position_status, responsible_id, special_note, creator_id, total_positions, remaining_positions) "
                         +
                         "VALUES (#{positionName}, #{workLocation}, #{regionCode}, #{dutyDesc}, #{workStartTime}, " +
-                        "#{workEndTime}, #{employmentType}, #{laborCompanyId}, #{basicSalary}, #{payCycle}, #{salaryDesc}, "
-                        +
-                        "#{dailyHours}, #{weeklyFreq}, #{workingDays}, #{checkInTime}, #{checkOutTime}, #{billingMethod}, #{overtimePay}, #{positionStatus}, #{responsibleId}, #{specialNote}, #{creatorId}, #{totalPositions}, #{remainingPositions})")
+                        "#{workEndTime}, #{employmentType}, #{laborCompanyId}, #{salaryConfigId}, #{salaryDesc}, " +
+                        "#{dailyHours}, #{weeklyFreq}, #{workingDays}, #{checkInTime}, #{checkOutTime}, #{positionStatus}, #{responsibleId}, #{specialNote}, #{creatorId}, #{totalPositions}, #{remainingPositions})")
         @Options(useGeneratedKeys = true, keyProperty = "positionId")
         int insert(Position position);
 
@@ -62,9 +63,9 @@ public interface PositionMapper {
                         "region_code = #{regionCode}, duty_desc = #{dutyDesc}, work_start_time = #{workStartTime}, " +
                         "work_end_time = #{workEndTime}, employment_type = #{employmentType}, labor_company_id = #{laborCompanyId}, "
                         +
-                        "basic_salary = #{basicSalary}, pay_cycle = #{payCycle}, salary_desc = #{salaryDesc}, " +
+                        "salary_config_id = #{salaryConfigId}, salary_desc = #{salaryDesc}, " +
                         "daily_hours = #{dailyHours}, weekly_freq = #{weeklyFreq}, working_days = #{workingDays}, " +
-                        "check_in_time = #{checkInTime}, check_out_time = #{checkOutTime}, billing_method = #{billingMethod}, overtime_pay = #{overtimePay}, position_status = #{positionStatus}, "
+                        "check_in_time = #{checkInTime}, check_out_time = #{checkOutTime}, position_status = #{positionStatus}, "
                         +
                         "responsible_id = #{responsibleId}, special_note = #{specialNote}, total_positions = #{totalPositions}, remaining_positions = #{remainingPositions} WHERE position_id = #{positionId}")
         int update(Position position);
@@ -72,11 +73,9 @@ public interface PositionMapper {
         @Delete("DELETE FROM position WHERE position_id = #{positionId}")
         int delete(Long positionId);
 
-        // 减少剩余人数
         @Update("UPDATE position SET remaining_positions = remaining_positions - 1 WHERE position_id = #{positionId} AND remaining_positions > 0")
         int decreaseRemainingPositions(Long positionId);
 
-        // 关闭岗位
         @Update("UPDATE position SET position_status = 2 WHERE position_id = #{positionId}")
         int closePosition(Long positionId);
 }

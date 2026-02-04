@@ -59,4 +59,9 @@ public interface LeaveRequestMapper {
         int countOverlappingRequests(@Param("userId") Long userId,
                         @Param("startDate") java.time.LocalDate startDate,
                         @Param("endDate") java.time.LocalDate endDate);
+
+        @Select("SELECT * FROM leave_request WHERE user_id = #{userId} AND position_id = #{positionId} " +
+                        "AND status IN ('已通过', '同意') AND (start_date <= #{end} AND end_date >= #{start})")
+        List<LeaveRequest> findApprovedByRange(@Param("userId") Long userId, @Param("positionId") Long positionId,
+                        @Param("start") java.time.LocalDate start, @Param("end") java.time.LocalDate end);
 }

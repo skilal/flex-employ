@@ -48,18 +48,24 @@ public interface AttendanceMapper {
                         @Param("startDate") LocalDate startDate,
                         @Param("endDate") LocalDate endDate);
 
+        @Select("SELECT * FROM attendance WHERE on_duty_worker_id = #{workerId} AND attendance_date BETWEEN #{start} AND #{end}")
+        List<Attendance> findByWorkerAndRange(@Param("workerId") Long workerId, @Param("start") LocalDate start,
+                        @Param("end") LocalDate end);
+
         @Select("SELECT * FROM attendance WHERE attendance_id = #{attendanceId}")
         Attendance findById(Long attendanceId);
 
         @Insert("INSERT INTO attendance (on_duty_worker_id, position_id, attendance_date, actual_check_in, " +
-                        "actual_check_out, attendance_status) " +
-                        "VALUES (#{onDutyWorkerId}, #{positionId}, #{attendanceDate}, #{actualCheckIn}, #{actualCheckOut}, #{attendanceStatus})")
+                        "actual_check_out, in_status, out_status, attendance_status) " +
+                        "VALUES (#{onDutyWorkerId}, #{positionId}, #{attendanceDate}, #{actualCheckIn}, #{actualCheckOut}, "
+                        +
+                        "#{inStatus}, #{outStatus}, #{attendanceStatus})")
         @Options(useGeneratedKeys = true, keyProperty = "attendanceId")
         int insert(Attendance attendance);
 
         @Update("UPDATE attendance SET attendance_date = #{attendanceDate}, actual_check_in = #{actualCheckIn}, " +
-                        "actual_check_out = #{actualCheckOut}, attendance_status = #{attendanceStatus} " +
-                        "WHERE attendance_id = #{attendanceId}")
+                        "actual_check_out = #{actualCheckOut}, in_status = #{inStatus}, out_status = #{outStatus}, " +
+                        "attendance_status = #{attendanceStatus} WHERE attendance_id = #{attendanceId}")
         int update(Attendance attendance);
 
         @Delete("DELETE FROM attendance WHERE attendance_id = #{attendanceId}")
@@ -68,11 +74,11 @@ public interface AttendanceMapper {
         @Select("SELECT COUNT(*) FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date}")
         int countByWorkerAndDate(@Param("onDutyWorkerId") Long onDutyWorkerId, @Param("date") java.time.LocalDate date);
 
-        @Select("SELECT COUNT(*) FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date} AND attendance_id != #{excludeId}")
-        int countByWorkerAndDateExcludeId(@Param("onDutyWorkerId") Long onDutyWorkerId,
-                        @Param("date") java.time.LocalDate date, @Param("excludeId") Long excludeId);
-
         @Select("SELECT * FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date} LIMIT 1")
         Attendance findByWorkerAndDate(@Param("onDutyWorkerId") Long onDutyWorkerId,
                         @Param("date") java.time.LocalDate date);
+
+        @Select("SELECT COUNT(*) FROM attendance WHERE on_duty_worker_id = #{onDutyWorkerId} AND attendance_date = #{date} AND attendance_id != #{excludeId}")
+        int countByWorkerAndDateExcludeId(@Param("onDutyWorkerId") Long onDutyWorkerId, @Param("date") LocalDate date,
+                        @Param("excludeId") Long excludeId);
 }

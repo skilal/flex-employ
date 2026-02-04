@@ -4,60 +4,16 @@
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="岗位名称">
-          <el-input 
-            v-model="searchForm.positionName" 
-            placeholder="请输入岗位名称" 
-            clearable 
-            @clear="handleSearch"
-            style="width: 200px"
-          >
-            <template #append>
-              <el-button :icon="Search" @click="handleSearch" />
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="工作地点">
-          <el-input 
-            v-model="searchForm.workLocation" 
-            placeholder="请输入工作地点" 
-            clearable 
-            @clear="handleSearch"
-            style="width: 200px"
-          >
-            <template #append>
-              <el-button :icon="Search" @click="handleSearch" />
-            </template>
-          </el-input>
+          <el-input v-model="searchForm.positionName" placeholder="模糊搜索" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="用工类型">
-          <el-select 
-            v-model="searchForm.employmentType" 
-            placeholder="用工类型" 
-            clearable
-            @change="handleSearch"
-            @clear="handleSearch"
-            style="width: 150px"
-          >
+          <el-select v-model="searchForm.employmentType" placeholder="全部" clearable style="width: 150px">
             <el-option label="全日制用工" value="全日制用工" />
             <el-option label="非全日制用工" value="非全日制用工" />
-            <el-option label="项目制用工" value="项目制用工" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="岗位状态">
-          <el-select 
-            v-model="searchForm.positionStatus" 
-            placeholder="岗位状态" 
-            clearable
-            @change="handleSearch"
-            @clear="handleSearch"
-            style="width: 150px"
-          >
-            <el-option label="未发布" :value="0" />
-            <el-option label="招聘中" :value="1" />
-            <el-option label="已关闭" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item>
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -66,75 +22,38 @@
     <!-- 操作按钮 -->
     <div class="action-buttons">
       <el-button type="primary" @click="handleAdd">
-        <el-icon><Plus /></el-icon>
-        新增岗位
+        <el-icon><Plus /></el-icon> 发布新岗位
       </el-button>
     </div>
 
-    <!-- 表格 -->
+    <!-- 数据表格 -->
     <el-card>
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="positionId" label="岗位ID" width="80" />
-        <el-table-column prop="positionName" label="岗位名称" width="150" />
-        <el-table-column prop="workLocation" label="工作地点" width="200" />
-        <el-table-column prop="employmentType" label="用工类型" width="120" />
-        <el-table-column prop="workStartTime" label="开始日期" width="120" />
-        <el-table-column prop="workEndTime" label="结束日期" width="120" />
-        <el-table-column prop="basicSalary" label="基本工资" width="100">
-          <template #default="{ row }">¥{{ row.basicSalary }}</template>
-        </el-table-column>
-        <el-table-column prop="payCycle" label="薪资周期" width="100" />
-        <el-table-column prop="dailyHours" label="每日工时" width="100" />
-        <el-table-column prop="workingDays" label="排班规则" width="180">
+      <el-table :data="positions" border stripe v-loading="loading">
+        <el-table-column prop="positionId" label="ID" width="60" />
+        <el-table-column prop="positionName" label="岗位名称" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="companyName" label="所属劳务公司" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="workLocation" label="工作地点" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="employmentType" label="类型" width="120">
           <template #default="{ row }">
-            <el-tag size="small" type="info">{{ formatWorkingDays(row.workingDays) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="checkInTime" label="应签到时间" width="120" />
-        <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
-        <el-table-column prop="billingMethod" label="计费方式" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.billingMethod === 1 ? 'warning' : 'success'">
-              {{ row.billingMethod === 1 ? '按小时' : '按天' }}
+            <el-tag :type="row.employmentType === '全日制用工' ? '' : 'success'">
+              {{ row.employmentType }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="overtimePay" label="加班费" width="100">
+        <el-table-column prop="salaryConfigName" label="薪资模版" width="150">
           <template #default="{ row }">
-            {{ row.overtimePay ? `¥${row.overtimePay}/时` : '-' }}
+             <el-tag type="info">{{ row.salaryConfigName || '未关联' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="weeklyFreq" label="每周天数" width="100" />
-        <el-table-column label="劳务公司" width="200">
+        <el-table-column label="招聘状态" width="100" align="center">
           <template #default="{ row }">
-            <div>
-              <div>ID: {{ row.laborCompanyId || '-' }}</div>
-              <div style="color: #909399; font-size: 12px;">
-                {{ row.companyName || '-' }}
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="totalPositions" label="招聘人数" width="100" />
-        <el-table-column prop="remainingPositions" label="剩余人数" width="100">
-          <template #default="{ row }">
-            <span :style="{ color: row.remainingPositions <= 0 ? 'red' : '' }">
-              {{ row.remainingPositions || 0 }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="positionStatus" label="岗位状态" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.positionStatus === 0" type="info">未发布</el-tag>
-            <el-tag v-else-if="row.positionStatus === 1" type="success">招聘中</el-tag>
-            <el-tag v-else type="danger">已关闭</el-tag>
+            <el-tag :type="row.positionStatus === 1 ? 'success' : 'info'">
+              {{ row.positionStatus === 1 ? '招聘中' : '已停止' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" plain @click="handleShowQR(row)">
-              考勤码
-            </el-button>
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -145,6 +64,7 @@
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
+        :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
@@ -152,19 +72,9 @@
       />
     </el-card>
 
-    <!-- 新增/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="800px"
-      @close="handleDialogClose"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="120px"
-      >
+    <!-- 发布/编辑对话框 -->
+    <el-dialog v-model="dialogFormVisible" :title="form.positionId ? '编辑岗位' : '发布岗位'" width="800px">
+      <el-form ref="positionFormRef" :model="form" :rules="rules" label-width="120px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="岗位名称" prop="positionName">
@@ -172,654 +82,208 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="工作地点" prop="workLocation">
-              <el-input v-model="form.workLocation" placeholder="请输入工作地点" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="地区代码" prop="regionCode">
-              <el-input v-model="form.regionCode" placeholder="请输入地区代码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item label="用工类型" prop="employmentType">
-              <el-select 
-                v-model="form.employmentType" 
-                placeholder="请选择用工类型" 
-                style="width: 100%"
-                @change="handleTypeChange"
-              >
+              <el-select v-model="form.employmentType" placeholder="请选择类型" style="width: 100%">
                 <el-option label="全日制用工" value="全日制用工" />
                 <el-option label="非全日制用工" value="非全日制用工" />
-                <el-option label="项目制用工" value="项目制用工" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="职责描述" prop="dutyDesc">
-          <el-input v-model="form.dutyDesc" type="textarea" :rows="3" placeholder="请输入职责描述" />
-        </el-form-item>
-
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="工作开始时间" prop="workStartTime">
-              <el-date-picker
-                v-model="form.workStartTime"
-                type="date"
-                placeholder="选择日期"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="工作结束时间" prop="workEndTime">
-              <el-date-picker
-                v-model="form.workEndTime"
-                type="date"
-                placeholder="选择日期"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="基本工资" prop="basicSalary">
-              <el-input-number v-model="form.basicSalary" :min="0" :precision="2" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="薪资周期" prop="payCycle">
-              <el-select v-model="form.payCycle" placeholder="请选择薪资周期" style="width: 100%">
-                <el-option label="一次性结算" value="一次性结算" />
-                <el-option label="日结" value="日结" />
-                <el-option label="周结" value="周结" />
-                <el-option label="15日结" value="15日结" />
-                <el-option label="月结" value="月结" />
+            <el-form-item label="所属公司" prop="laborCompanyId">
+              <el-select v-model="form.laborCompanyId" placeholder="选择劳务公司" style="width: 100%">
+                <el-option v-for="c in companies" :key="c.companyId" :label="c.companyName" :value="c.companyId" />
               </el-select>
-              <span v-if="payCycleTip" style="font-size: 12px; color: #909399; margin-top: 4px; display: block;">
-                {{ payCycleTip }}
-              </span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="薪资模版" prop="salaryConfigId">
+              <el-select v-model="form.salaryConfigId" placeholder="关联薪资配置模版" style="width: 100%">
+                <el-option v-for="item in salaryConfigs" :key="item.configId" :label="item.configName" :value="item.configId" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="每日工时" prop="dailyHours">
-              <el-input-number 
-                v-model="form.dailyHours" 
-                :min="0" 
-                :max="24" 
-                :precision="1" 
-                style="width: 100%" 
-              />
-              <span v-if="form.employmentType === '非全日制用工'" style="font-size: 12px; color: #E6A23C; margin-top: 4px; display: block;">
-                ⚠️ 非全日制用工每日工时不超过4小时
-              </span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="每周天数" prop="weeklyFreq">
-              <el-input-number 
-                v-model="form.weeklyFreq" 
-                disabled
-                style="width: 100%" 
-              />
-              <span style="font-size: 12px; color: #909399;">(由工作日选择自动计算)</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="工作日选择" prop="workingDaysList">
-          <el-checkbox-group v-model="form.workingDaysList" @change="handleWorkingDaysChange">
-            <el-checkbox :label="1">周一</el-checkbox>
-            <el-checkbox :label="2">周二</el-checkbox>
-            <el-checkbox :label="3">周三</el-checkbox>
-            <el-checkbox :label="4">周四</el-checkbox>
-            <el-checkbox :label="5">周五</el-checkbox>
-            <el-checkbox :label="6">周六</el-checkbox>
-            <el-checkbox :label="7">周日</el-checkbox>
-          </el-checkbox-group>
+        <el-form-item label="工作地点" prop="workLocation">
+          <el-input v-model="form.workLocation" placeholder="详细工作地址" />
         </el-form-item>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应签到时间" prop="checkInTime">
-              <el-time-picker
-                v-model="form.checkInTime"
-                format="HH:mm"
-                value-format="HH:mm:ss"
-                placeholder="选择应签到时间"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="应签退时间" prop="checkOutTime">
-              <el-time-picker
-                v-model="form.checkOutTime"
-                format="HH:mm"
-                value-format="HH:mm:ss"
-                placeholder="选择应签退时间"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="计费方式" prop="billingMethod">
-              <el-radio-group v-model="form.billingMethod">
-                <el-radio :label="1">按小时</el-radio>
-                <el-radio :label="2">按天</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="加班费用" prop="overtimePay" v-if="form.billingMethod === 2 || form.employmentType === '全日制用工'">
-              <el-input-number 
-                v-model="form.overtimePay" 
-                :min="0" 
-                :precision="2"
-                style="width: 100%" 
-                placeholder="元/小时 (可选)"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="招聘人数" prop="totalPositions">
-              <el-input-number 
-                v-model="form.totalPositions" 
-                :min="1" 
-                :max="999" 
-                style="width: 100%" 
-                placeholder="请输入招聘总人数"
-              />
+              <el-input-number v-model="form.totalPositions" :min="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="剩余人数" prop="remainingPositions">
-              <el-input-number 
-                v-model="form.remainingPositions" 
-                :min="0" 
-                :max="999" 
-                style="width: 100%" 
-                placeholder="剩余可招聘人数"
-              />
-              <span style="font-size: 12px; color: #E6A23C; margin-top: 4px; display: block;">
-                ⚠️ 修改此值会影响岗位招聘状态
-              </span>
+            <el-form-item label="负责人ID" prop="responsibleId">
+              <el-input-number v-model="form.responsibleId" :min="1" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="劳务公司" prop="laborCompanyId">
-              <el-select 
-                v-model="form.laborCompanyId" 
-                placeholder="请选择劳务公司" 
-                filterable
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="item in companyOptions"
-                  :key="item.companyId"
-                  :label="`[${item.companyId}] ${item.companyName}`"
-                  :value="item.companyId"
-                />
-              </el-select>
+            <el-form-item label="打卡上班" prop="checkInTime">
+              <el-time-picker v-model="form.checkInTime" value-format="HH:mm:ss" placeholder="早打卡" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="岗位状态" prop="positionStatus">
-              <el-select v-model="form.positionStatus" placeholder="请选择状态" style="width: 100%">
-                <el-option label="未发布" :value="0" />
-                <el-option label="招聘中" :value="1" />
-                <el-option label="已关闭" :value="2" />
-              </el-select>
+            <el-form-item label="打卡下班" prop="checkOutTime">
+              <el-time-picker v-model="form.checkOutTime" value-format="HH:mm:ss" placeholder="晚打卡" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="薪资说明">
-          <el-input v-model="form.salaryDesc" type="textarea" :rows="2" placeholder="请输入薪资说明" />
+        <el-form-item label="描述/要求" prop="dutyDesc">
+          <el-input type="textarea" v-model="form.dutyDesc" :rows="4" placeholder="详细岗位职责描述..." />
         </el-form-item>
 
-        <el-form-item label="特殊说明">
-          <el-input v-model="form.specialNote" type="textarea" :rows="2" placeholder="请输入特殊说明" />
+        <el-form-item label="岗位状态">
+          <el-radio-group v-model="form.positionStatus">
+            <el-radio :label="1">招聘中</el-radio>
+            <el-radio :label="0">停止招聘</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
-
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
+        <el-button @click="dialogFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">提交保存</el-button>
       </template>
-    </el-dialog>
-
-    <!-- 二维码对话框 -->
-    <el-dialog
-      v-model="qrDialogVisible"
-      title="岗位考勤二维码"
-      width="400px"
-      center
-    >
-      <div class="qr-container" v-if="qrPositionId">
-        <div class="qr-header">
-          <h3>{{ qrPositionName }}</h3>
-          <p>请员工使用手机浏览器或扫码软件扫描此码</p>
-        </div>
-        <div class="qr-content">
-          <qrcode-vue
-            :value="qrValue"
-            :size="240"
-            level="H"
-            render-as="svg"
-          />
-        </div>
-        <div class="qr-footer">
-          <p class="url-tip">{{ qrValue }}</p>
-          <el-alert
-            title="提示：员工扫码后需登录系统方可打卡"
-            type="info"
-            show-icon
-            :closable="false"
-          />
-        </div>
-      </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
 import { getPositions, createPosition, updatePosition, deletePosition } from '../../api/position'
 import { getCompanies } from '../../api/company'
-import QrcodeVue from 'qrcode.vue'
+import { getSalaryConfigs } from '../../api/salary'
 
-// 搜索表单
-const searchForm = reactive({
-  positionName: '',
-  workLocation: '',
-  employmentType: null,
-  positionStatus: null
-})
-
-// 表格数据
-const tableData = ref([])
+const positions = ref([])
+const companies = ref([])
+const salaryConfigs = ref([])
 const loading = ref(false)
+const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
-const total = ref(0)
 
-// 对话框
-const dialogVisible = ref(false)
-const dialogTitle = ref('')
-const formRef = ref(null)
-const submitLoading = ref(false)
+const searchForm = reactive({
+  positionName: '',
+  employmentType: ''
+})
 
-// 二维码对话框
-const qrDialogVisible = ref(false)
-const qrPositionId = ref(null)
-const qrPositionName = ref('')
-const qrValue = ref('')
+const dialogFormVisible = ref(false)
+const positionFormRef = ref(null)
 
-// 公司选项
-const companyOptions = ref([])
-
-// 薪资周期提示
-const payCycleTip = ref('')
-
-const form = reactive({
+let form = reactive({
   positionId: null,
   positionName: '',
   workLocation: '',
-  regionCode: '',
+  regionCode: '310100',
   dutyDesc: '',
-  workStartTime: '',
-  workEndTime: '',
-  employmentType: '',
+  employmentType: '全日制用工',
   laborCompanyId: null,
-  basicSalary: 0,
-  payCycle: '',
+  salaryConfigId: null,
   salaryDesc: '',
-  dailyHours: 0,
-  weeklyFreq: 0,
-  positionStatus: 0,
-  responsibleId: null,
-  specialNote: '',
-  totalPositions: 1,        // 招聘人数默认1
-  remainingPositions: 1,     // 剩余人数默认1
-  workingDays: '',
-  workingDaysList: [1, 2, 3, 4, 5],
-  billingMethod: 2,
-  overtimePay: null,
-  checkInTime: '08:00:00',   // 应签到时间默认 08:00
-  checkOutTime: '17:00:00'   // 应签退时间默认 17:00
+  dailyHours: 8,
+  weeklyFreq: 5,
+  workingDays: '1,2,3,4,5',
+  checkInTime: '09:00:00',
+  checkOutTime: '18:00:00',
+  positionStatus: 1,
+  responsibleId: 1,
+  totalPositions: 10,
+  remainingPositions: 10
 })
 
 const rules = {
-  positionName: [{ required: true, message: '请输入岗位名称', trigger: 'blur' }],
-  totalPositions: [{ required: true, message: '请输入招聘总人数', trigger: 'blur' }],
-  remainingPositions: [{ required: true, message: '请输入剩余人数', trigger: 'blur' }],
-  checkInTime: [{ required: true, message: '请选择应签到时间', trigger: 'change' }],
-  checkOutTime: [{ required: true, message: '请选择应签退时间', trigger: 'change' }],
-  workLocation: [{ required: true, message: '请输入工作地点', trigger: 'blur' }],
-  regionCode: [{ required: true, message: '请输入地区代码', trigger: 'blur' }],
-  employmentType: [{ required: true, message: '请选择用工类型', trigger: 'change' }],
-  laborCompanyId: [{ required: true, message: '请输入劳务公司ID', trigger: 'blur' }],
-  basicSalary: [{ required: true, message: '请输入基本工资', trigger: 'blur' }],
-  payCycle: [{ required: true, message: '请选择薪资周期', trigger: 'change' }],
-  dailyHours: [
-    { 
-      validator: (rule, value, callback) => {
-        if (form.employmentType === '非全日制用工' && value > 4) {
-          callback(new Error('非全日制用工每日工时不能超过4小时'))
-        } else {
-          callback()
-        }
-      }, 
-      trigger: 'blur' 
-    }
-  ],
-  weeklyFreq: [
-    { 
-      validator: (rule, value, callback) => {
-        if (form.employmentType === '非全日制用工') {
-          const weeklyHours = form.dailyHours * value
-          if (weeklyHours > 24) {
-            callback(new Error(`每周总工时${weeklyHours.toFixed(1)}小时，不能超过24小时`))
-          } else {
-            callback()
-          }
-        } else {
-          callback()
-        }
-      }, 
-      trigger: 'blur' 
-    }
-  ]
-}
-
-// 用工类型变化处理
-const handleEmploymentTypeChange = (type) => {
-  // 根据用工类型提供薪资周期建议
-  switch(type) {
-    case '全日制用工':
-      payCycleTip.value = '💡 推荐：月结'
-      form.payCycle = '月结'
-      form.dailyHours = 8
-      form.workingDaysList = [1, 2, 3, 4, 5]
-      handleWorkingDaysChange()
-      break
-    case '非全日制用工':
-      payCycleTip.value = '💡 推荐：15日结（每日≤4h，每周≤24h）'
-      form.payCycle = '15日结'
-      form.dailyHours = 4
-      break
-    case '项目制用工':
-      payCycleTip.value = '💡 可选：一次性结算、日结、周结、月结'
-      form.payCycle = ''
-      break
-    default:
-      payCycleTip.value = ''
-  }
-}
-
-const handleWorkingDaysChange = () => {
-  form.workingDays = form.workingDaysList.sort().join(',')
-  form.weeklyFreq = form.workingDaysList.length
-}
-
-const formatWorkingDays = (daysStr) => {
-  if (!daysStr) return '未设置'
-  const dayMap = {
-    '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日'
-  }
-  return daysStr.split(',').map(d => dayMap[d]).join(', ')
+  positionName: [{ required: true, message: '必填项', trigger: 'blur' }],
+  laborCompanyId: [{ required: true, message: '必选项', trigger: 'change' }],
+  salaryConfigId: [{ required: true, message: '请关联薪资模版', trigger: 'change' }],
+  employmentType: [{ required: true, message: '必选项', trigger: 'change' }]
 }
 
 const loadData = async () => {
   loading.value = true
   try {
     const res = await getPositions({
-      ...searchForm,
       pageNum: currentPage.value,
-      pageSize: pageSize.value
+      pageSize: pageSize.value,
+      ...searchForm
     })
-    tableData.value = res.data || []
-    total.value = res.total || 0
+    positions.value = res.data.list || res.data
+    total.value = res.data.total || positions.value.length
   } catch (error) {
-    console.error('加载列表失败:', error)
-    ElMessage.error('加载岗位列表失败')
+    ElMessage.error('获取列表失败')
   } finally {
     loading.value = false
   }
 }
 
-// 加载公司列表
-const loadCompanies = async () => {
-  try {
-    const res = await getCompanies()
-    companyOptions.value = res.data || []
-  } catch (error) {
-    console.error('加载公司失败:', error)
-  }
+const loadConfigs = async () => {
+  const [compRes, skillRes] = await Promise.all([getCompanies(), getSalaryConfigs()])
+  companies.value = compRes.data
+  salaryConfigs.value = skillRes.data
 }
 
-// 搜索
 const handleSearch = () => {
   currentPage.value = 1
   loadData()
 }
 
-// 重置
 const handleReset = () => {
   searchForm.positionName = ''
-  searchForm.workLocation = ''
-  searchForm.employmentType = null
-  searchForm.positionStatus = null
+  searchForm.employmentType = ''
   handleSearch()
 }
 
-// 新增
 const handleAdd = () => {
-  dialogTitle.value = '新增岗位'
   Object.assign(form, {
     positionId: null,
     positionName: '',
-    workLocation: '',
-    regionCode: '',
-    dutyDesc: '',
-    workStartTime: '',
-    workEndTime: '',
-    employmentType: '',
+    salaryConfigId: null,
     laborCompanyId: null,
-    basicSalary: 0,
-    payCycle: '',
-    salaryDesc: '',
-    dailyHours: 0,
-    weeklyFreq: 0,
-    positionStatus: 0,
-    specialNote: '',
-    totalPositions: 1,
-    remainingPositions: 1,
-    workingDays: '',
-    workingDaysList: [1, 2, 3, 4, 5],
-    billingMethod: 2,
-    overtimePay: null
+    positionStatus: 1
   })
-  handleWorkingDaysChange()
-  payCycleTip.value = ''
-  dialogVisible.value = true
+  dialogFormVisible.value = true
 }
 
-// 编辑
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑岗位'
   Object.assign(form, row)
-  if (row.workingDays) {
-    form.workingDaysList = row.workingDays.split(',').map(Number)
-  } else {
-    form.workingDaysList = []
-  }
-  dialogVisible.value = true
+  dialogFormVisible.value = true
 }
 
-// 显示二维码
-const handleShowQR = (row) => {
-  qrPositionId.value = row.positionId
-  qrPositionName.value = row.positionName
-  // 生成打卡页面的完整URL
-  const baseUrl = window.location.origin
-  qrValue.value = `${baseUrl}/punch/${row.positionId}`
-  qrDialogVisible.value = true
-}
-
-// 删除
 const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该岗位吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      await deletePosition(row.positionId)
-      ElMessage.success('删除成功')
-      loadData()
-    } catch (error) {
-      console.error('删除失败:', error)
-      ElMessage.error('删除失败')
-    }
-  }).catch(() => {})
-}
-
-// 提交
-const handleTypeChange = (val) => {
-  if (val === '非全日制用工') {
-    form.billingMethod = 1
-  } else if (val === '全日制用工') {
-    form.billingMethod = 2
-  }
+  ElMessageBox.confirm('确定要删除吗？', '警告', { type: 'error' }).then(async () => {
+    await deletePosition(row.positionId)
+    ElMessage.success('已删除')
+    loadData()
+  })
 }
 
 const handleSubmit = async () => {
-  await formRef.value.validate(async (valid) => {
+  await positionFormRef.value.validate(async (valid) => {
     if (valid) {
-      submitLoading.value = true
-      try {
-        if (form.positionId) {
-          await updatePosition(form.positionId, form)
-          ElMessage.success('更新成功')
-        } else {
-          await createPosition(form)
-          ElMessage.success('新增成功')
-        }
-        dialogVisible.value = false
-        loadData()
-      } catch (error) {
-        console.error('提交失败:', error)
-        ElMessage.error(error.response?.data?.message || '提交失败')
-      } finally {
-        submitLoading.value = false
-      }
+      if (form.positionId) await updatePosition(form.positionId, form)
+      else await createPosition(form)
+      ElMessage.success('操作成功')
+      dialogFormVisible.value = false
+      loadData()
     }
   })
 }
 
-// 对话框关闭
-const handleDialogClose = () => {
-  formRef.value?.resetFields()
-}
-
-// 分页
-const handleSizeChange = (val) => {
-  pageSize.value = val
-  loadData()
-}
-
-const handleCurrentChange = (val) => {
-  currentPage.value = val
-  loadData()
-}
+const handleSizeChange = val => { pageSize.value = val; loadData() }
+const handleCurrentChange = val => { currentPage.value = val; loadData() }
 
 onMounted(() => {
   loadData()
-  loadCompanies()
+  loadConfigs()
 })
 </script>
-
-<style scoped>
-.position-management {
-  width: 100%;
-}
-
-.search-card {
-  margin-bottom: 20px;
-}
-
-.action-buttons {
-  margin-bottom: 20px;
-}
-
-.qr-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
-}
-
-.qr-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.qr-header h3 {
-  margin: 0 0 8px 0;
-  color: #303133;
-}
-
-.qr-header p {
-  margin: 0;
-  font-size: 13px;
-  color: #909399;
-}
-
-.qr-content {
-  background: #fff;
-  padding: 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
-}
-
-.qr-footer {
-  margin-top: 20px;
-  width: 100%;
-}
-
-.url-tip {
-  font-size: 12px;
-  color: #c0c4cc;
-  word-break: break-all;
-  margin-bottom: 15px;
-  text-align: center;
-}
-</style>

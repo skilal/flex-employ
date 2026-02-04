@@ -1,157 +1,114 @@
 <template>
   <div class="my-salary">
-    <!-- 搜索栏 -->
-    <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="薪资周期">
-          <el-date-picker
-            v-model="searchForm.dateRange"
-            type="monthrange"
-            range-separator="至"
-            start-placeholder="开始月份"
-            end-placeholder="结束月份"
-            value-format="YYYY-MM"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
     <!-- 薪资列表 -->
     <el-card>
       <template #header>
-        <h3>薪资记录</h3>
+        <div class="card-header">
+          <h3>我的薪资单</h3>
+          <span class="tip">（显示所有已结算的薪资记录）</span>
+        </div>
       </template>
 
       <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="payRecordId" label="薪资ID" width="100" />
-        <el-table-column label="薪资周期" width="200">
+        <el-table-column label="计薪周期" width="200">
           <template #default="{ row }">
             {{ row.cycleStart }} 至 {{ row.cycleEnd }}
           </template>
         </el-table-column>
-        <el-table-column prop="basePay" label="基本工资" width="100">
-          <template #default="{ row }">¥{{ row.basePay }}</template>
-        </el-table-column>
-        <el-table-column prop="grossPay" label="应发工资" width="100">
-          <template #default="{ row }">¥{{ row.grossPay }}</template>
-        </el-table-column>
-        <el-table-column prop="totalDeduction" label="扣除合计" width="100">
-          <template #default="{ row }">¥{{ row.totalDeduction }}</template>
-        </el-table-column>
-        <el-table-column prop="netPay" label="实发工资" width="100">
+        <el-table-column label="实发金额" width="120">
           <template #default="{ row }">
-            <span style="color: #f56c6c; font-weight: bold;">¥{{ row.netPay }}</span>
+            <span style="color: #f56c6c; font-weight: bold">¥{{ row.netPay }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="paymentStatus" label="支付状态" width="100">
+        <el-table-column prop="paymentStatus" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.paymentStatus === 'PENDING'" type="warning">待支付</el-tag>
-            <el-tag v-else-if="row.paymentStatus === 'PAID'" type="success">已支付</el-tag>
-            <el-tag v-else type="danger">支付失败</el-tag>
+            <el-tag :type="getStatusType(row.paymentStatus)">{{ row.paymentStatus }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="paymentDate" label="支付日期" width="120" />
+        <el-table-column prop="deadlineDate" label="预计最晚发放" width="120" />
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="handleViewDetail(row)">查看详情</el-button>
+            <el-button size="small" type="primary" @click="handleViewDetail(row)">查看电子工资条</el-button>
           </template>
         </el-table-column>
       </el-table>
-
-      <el-empty v-if="tableData.length === 0 && !loading" description="暂无薪资记录" />
+      <el-empty v-if="tableData.length === 0 && !loading" description="暂无结算记录" />
     </el-card>
 
-    <!-- 薪资详情对话框 -->
-    <el-dialog v-model="detailVisible" title="薪资详情" width="700px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="薪资ID">{{ currentRow.payRecordId }}</el-descriptions-item>
-        <el-descriptions-item label="支付日期">{{ currentRow.paymentDate }}</el-descriptions-item>
-        <el-descriptions-item label="周期开始">{{ currentRow.cycleStart }}</el-descriptions-item>
-        <el-descriptions-item label="周期结束">{{ currentRow.cycleEnd }}</el-descriptions-item>
-      </el-descriptions>
+    <!-- 电子工资条对话框 -->
+    <el-dialog v-model="detailVisible" title="电子工资条" width="90%">
+      <div v-if="currentRow" class="salary-bill">
+        <div class="bill-header">
+          <h2>{{ currentRow.cycleEnd.substring(0, 7) }} 薪资明细单</h2>
+          <p>核算周期：{{ currentRow.cycleStart }} ~ {{ currentRow.cycleEnd }}</p>
+        </div>
 
-      <el-divider content-position="left">收入明细</el-divider>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="基本工资">¥{{ currentRow.basePay }}</el-descriptions-item>
-        <el-descriptions-item label="绩效奖金">¥{{ currentRow.performanceBonus }}</el-descriptions-item>
-        <el-descriptions-item label="加班费">¥{{ currentRow.overtimePay }}</el-descriptions-item>
-        <el-descriptions-item label="补贴">¥{{ currentRow.allowance }}</el-descriptions-item>
-        <el-descriptions-item label="实际工时">{{ currentRow.actualWorkTime }}小时</el-descriptions-item>
-        <el-descriptions-item label="应发工资">
-          <span style="color: #67c23a; font-weight: bold;">¥{{ currentRow.grossPay }}</span>
-        </el-descriptions-item>
-      </el-descriptions>
+        <el-divider>收入项</el-divider>
+        <div class="money-grid">
+          <div class="item"><span>周期标准工资</span><strong>¥{{ currentRow.periodBasePay }}</strong></div>
+          <div class="item"><span>底薪 (出勤实发)</span><strong>¥{{ currentRow.basePay }}</strong></div>
+          <div class="item"><span>绩效/奖金</span><strong>¥{{ currentRow.bonusPay }}</strong></div>
+          <div class="item"><span>加班费</span><strong>¥{{ currentRow.overtimePay }}</strong></div>
+          <div class="item"><span>各类补贴</span><strong>¥{{ currentRow.allowance }}</strong></div>
+        </div>
 
-      <el-divider content-position="left">扣除明细</el-divider>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="社保合计">¥{{ currentRow.insuranceTotal }}</el-descriptions-item>
-        <el-descriptions-item label="公积金">¥{{ currentRow.pfContribution }}</el-descriptions-item>
-        <el-descriptions-item label="税款">¥{{ currentRow.taxAmount }}</el-descriptions-item>
-        <el-descriptions-item label="迟到扣款">¥{{ currentRow.lateDeduction }}</el-descriptions-item>
-        <el-descriptions-item label="自定义增减">¥{{ currentRow.customAddDeduct }}</el-descriptions-item>
-        <el-descriptions-item label="扣除合计">
-          <span style="color: #f56c6c; font-weight: bold;">¥{{ currentRow.totalDeduction }}</span>
-        </el-descriptions-item>
-      </el-descriptions>
+        <el-divider>专项扣除 (五险一金/税)</el-divider>
+        <div class="money-grid deduction">
+          <div class="item"><span>养老保险</span><strong>-¥{{ currentRow.pensionDeduction }}</strong></div>
+          <div class="item"><span>医疗保险</span><strong>-¥{{ currentRow.medicalDeduction }}</strong></div>
+          <div class="item"><span>失业保险</span><strong>-¥{{ currentRow.unemploymentDeduction }}</strong></div>
+          <div class="item"><span>工伤保险</span><strong>-¥{{ currentRow.injuryDeduction }}</strong></div>
+          <div class="item"><span>公积金</span><strong>-¥{{ currentRow.pfDeduction }}</strong></div>
+          <div class="item"><span>个人所得税</span><strong>-¥{{ currentRow.taxAmount }}</strong></div>
+        </div>
 
-      <el-divider content-position="left">实发工资</el-divider>
-      <div style="text-align: center; padding: 20px 0;">
-        <h2 style="color: #409eff; margin: 0;">¥{{ currentRow.netPay }}</h2>
-        <p style="color: #909399; margin-top: 10px;">
-          支付状态：
-          <el-tag v-if="currentRow.paymentStatus === 'PENDING'" type="warning">待支付</el-tag>
-          <el-tag v-else-if="currentRow.paymentStatus === 'PAID'" type="success">已支付</el-tag>
-          <el-tag v-else type="danger">支付失败</el-tag>
-        </p>
+        <el-divider>考勤及其他扣款</el-divider>
+        <div class="money-grid deduction">
+          <div class="item"><span>迟到扣款</span><strong>-¥{{ currentRow.lateDeduction }}</strong></div>
+          <div class="item"><span>早退扣款</span><strong>-¥{{ currentRow.earlyLeaveDeduction }}</strong></div>
+          <div class="item"><span>缺勤扣款</span><strong>-¥{{ currentRow.absentDeduction }}</strong></div>
+          <div class="item"><span>请假扣款</span><strong>-¥{{ currentRow.leaveDeduction }}</strong></div>
+        </div>
+
+        <div class="bill-footer">
+          <div class="total-line">
+            应发合计：<span>¥{{ currentRow.grossPay }}</span>
+          </div>
+          <div class="total-line">
+            扣款合计：<span>-¥{{ currentRow.totalDeduction }}</span>
+          </div>
+          <div class="net-pay">
+            实发工薪：<span>¥{{ currentRow.netPay }}</span>
+          </div>
+          <div class="status-tip">
+            结算状态：{{ currentRow.paymentStatus }} | 预计最晚发放：{{ currentRow.deadlineDate }}
+          </div>
+        </div>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getMySalaries } from '../../api/salary'
-
-const searchForm = reactive({
-  dateRange: []
-})
+import { getMyPaySlips } from '../../api/salary'
 
 const tableData = ref([])
 const loading = ref(false)
 const detailVisible = ref(false)
-const currentRow = ref({})
+const currentRow = ref(null)
 
 const loadData = async () => {
   loading.value = true
   try {
-    const params = {}
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.startMonth = searchForm.dateRange[0]
-      params.endMonth = searchForm.dateRange[1]
-    }
-    
-    const res = await getMySalaries(params)
-    tableData.value = res.data.records || res.data || []
+    const res = await getMyPaySlips()
+    tableData.value = res.data || []
   } catch (error) {
-    console.error('加载数据失败:', error)
-    ElMessage.error('加载数据失败')
+    ElMessage.error('加载薪资单失败')
   } finally {
     loading.value = false
   }
-}
-
-const handleSearch = () => {
-  loadData()
-}
-
-const handleReset = () => {
-  searchForm.dateRange = []
-  loadData()
 }
 
 const handleViewDetail = (row) => {
@@ -159,17 +116,45 @@ const handleViewDetail = (row) => {
   detailVisible.value = true
 }
 
-onMounted(() => {
-  loadData()
-})
+const getStatusType = (status) => {
+  if (status === '已发放') return 'success'
+  if (status === '待结算') return 'warning'
+  return 'danger'
+}
+
+onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-.my-salary {
-  width: 100%;
-}
+.bill-header { text-align: center; margin-bottom: 20px; }
+.bill-header h2 { margin: 0; color: #333; }
+.bill-header p { color: #999; font-size: 13px; }
 
-.search-card {
-  margin-bottom: 20px;
+.money-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 10px;
 }
+.money-grid .item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+.money-grid.deduction .item { background: #fff5f5; }
+.money-grid .item span { font-size: 13px; color: #666; }
+.money-grid .item strong { color: #333; }
+.deduction .item strong { color: #f56c6c; }
+
+.bill-footer {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f0f7ff;
+  border-radius: 8px;
+}
+.total-line { display: flex; justify-content: flex-end; font-size: 14px; margin-bottom: 5px; color: #666; }
+.net-pay { display: flex; justify-content: flex-end; font-size: 22px; font-weight: bold; color: #409eff; margin-top: 10px; }
+.status-tip { text-align: right; font-size: 12px; color: #999; margin-top: 10px; }
 </style>

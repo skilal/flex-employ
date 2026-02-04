@@ -12,7 +12,9 @@ public class Attendance {
     private LocalDate attendanceDate;
     private LocalTime actualCheckIn;
     private LocalTime actualCheckOut;
-    private String attendanceStatus;
+    private String inStatus; // 正常, 迟到, 未打卡
+    private String outStatus; // 正常, 早退, 未打卡
+    private String attendanceStatus; // 正常, 异常, 缺勤
 
     // JOIN查询字段
     private String userName;

@@ -50,14 +50,16 @@
         <el-table-column prop="netPay" label="实发工资" width="100">
           <template #default="{ row }">¥{{ row.netPay }}</template>
         </el-table-column>
-        <el-table-column prop="paymentStatus" label="支付状态" width="100">
+        <el-table-column prop="deadlineDate" label="最晚支付日期" width="120" />
+        <el-table-column label="支付状态" width="180">
           <template #default="{ row }">
-            <el-tag v-if="row.paymentStatus === 'PENDING'" type="warning">待支付</el-tag>
-            <el-tag v-else-if="row.paymentStatus === 'PAID'" type="success">已支付</el-tag>
-            <el-tag v-else type="danger">支付失败</el-tag>
+            <div v-if="row.actualPaymentDate">
+              <el-tag type="success" size="small">已支付</el-tag>
+              <div style="font-size: 12px; color: #67C23A; margin-top: 2px;">{{ row.actualPaymentDate }}</div>
+            </div>
+            <el-tag v-else type="warning" size="small">待支付</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="paymentDate" label="支付日期" width="120" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
@@ -90,24 +92,9 @@
         :rules="rules"
         label-width="120px"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="在岗员工ID" prop="onDutyWorkerId">
-              <el-input-number v-model="form.onDutyWorkerId" :min="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="支付日期" prop="paymentDate">
-              <el-date-picker
-                v-model="form.paymentDate"
-                type="date"
-                placeholder="选择日期"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="在岗员工ID" prop="onDutyWorkerId">
+          <el-input-number v-model="form.onDutyWorkerId" :min="1" style="width: 100%" />
+        </el-form-item>
 
         <el-row :gutter="20">
           <el-col :span="12">
@@ -134,17 +121,49 @@
           </el-col>
         </el-row>
 
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="最晚支付日期">
+              <el-date-picker
+                v-model="form.deadlineDate"
+                type="date"
+                placeholder="自动计算"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+                disabled
+              />
+              <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+                💡 根据周期结束日期自动计算
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="实际支付日期">
+              <el-date-picker
+                v-model="form.actualPaymentDate"
+                type="date"
+                placeholder="未支付"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+              <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+                💡 为空表示未支付
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-divider content-position="left">收入项</el-divider>
 
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="基本工资" prop="basePay">
-              <el-input-number v-model="form.basePay" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.basePay" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="绩效奖金">
-              <el-input-number v-model="form.performanceBonus" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.bonusPay" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -152,12 +171,12 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="加班费">
-              <el-input-number v-model="form.overtimePay" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.overtimePay" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="补贴">
-              <el-input-number v-model="form.allowance" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.allowance" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -166,39 +185,65 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="社保合计" prop="insuranceTotal">
-              <el-input-number v-model="form.insuranceTotal" :min="0" :precision="2" style="width: 100%" />
+            <el-form-item label="养老保险">
+              <el-input-number v-model="form.pensionDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="公积金" prop="pfContribution">
-              <el-input-number v-model="form.pfContribution" :min="0" :precision="2" style="width: 100%" />
+            <el-form-item label="医疗保险">
+              <el-input-number v-model="form.medicalDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="税款" prop="taxAmount">
-              <el-input-number v-model="form.taxAmount" :min="0" :precision="2" style="width: 100%" />
+            <el-form-item label="失业保险">
+              <el-input-number v-model="form.unemploymentDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="工伤保险">
+              <el-input-number v-model="form.injuryDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="公积金">
+              <el-input-number v-model="form.pfDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="个人所得税">
+              <el-input-number v-model="form.taxAmount" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="迟到扣款">
-              <el-input-number v-model="form.lateDeduction" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.lateDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="早退扣款">
+              <el-input-number v-model="form.earlyLeaveDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="自定义增减">
-              <el-input-number v-model="form.customAddDeduct" :precision="2" style="width: 100%" />
+            <el-form-item label="旷工扣款">
+              <el-input-number v-model="form.absentDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="实际工时" prop="actualWorkTime">
-              <el-input-number v-model="form.actualWorkTime" :min="0" :precision="2" style="width: 100%" />
+            <el-form-item label="请假扣款">
+              <el-input-number v-model="form.leaveDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -208,28 +253,21 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="应发工资" prop="grossPay">
-              <el-input-number v-model="form.grossPay" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.grossPay" :min="0" :precision="2" style="width: 100%" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="扣除合计" prop="totalDeduction">
-              <el-input-number v-model="form.totalDeduction" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.totalDeduction" :min="0" :precision="2" style="width: 100%" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="实发工资" prop="netPay">
-              <el-input-number v-model="form.netPay" :min="0" :precision="2" style="width: 100%" />
+              <el-input-number v-model="form.netPay" :min="0" :precision="2" style="width: 100%" disabled />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="支付状态" prop="paymentStatus">
-          <el-select v-model="form.paymentStatus" placeholder="请选择" style="width: 100%">
-            <el-option label="待支付" value="PENDING" />
-            <el-option label="已支付" value="PAID" />
-            <el-option label="支付失败" value="FAILED" />
-          </el-select>
-        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -243,10 +281,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getSalaries, createSalary, updateSalary, deleteSalary } from '../../api/salary'
+import { getPaySlips, createPaySlip, updatePaySlip, deleteSalary } from '../../api/salary'
 
 const searchForm = reactive({
-  paymentStatus: null
+  // 现在通过 actualPaymentDate 判断支付状态，不需要独立的筛选字段
 })
 
 const tableData = ref([])
@@ -265,37 +303,34 @@ const form = reactive({
   onDutyWorkerId: null,
   cycleStart: '',
   cycleEnd: '',
-  paymentDate: '',
+  deadlineDate: '',
+  actualPaymentDate: '',
+  paymentMethod: '银行转账',
   basePay: 0,
-  performanceBonus: 0,
+  bonusPay: 0,
   overtimePay: 0,
   allowance: 0,
-  actualWorkTime: 0,
-  insuranceTotal: 0,
-  pfContribution: 0,
+  pensionDeduction: 0,
+  medicalDeduction: 0,
+  unemploymentDeduction: 0,
+  injuryDeduction: 0,
+  pfDeduction: 0,
   taxAmount: 0,
   lateDeduction: 0,
-  customAddDeduct: 0,
+  earlyLeaveDeduction: 0,
+  absentDeduction: 0,
+  leaveDeduction: 0,
   grossPay: 0,
   totalDeduction: 0,
   netPay: 0,
-  paymentStatus: 'PENDING'
+  confirmStatus: 1
 })
 
 const rules = {
   onDutyWorkerId: [{ required: true, message: '请输入在岗员工ID', trigger: 'blur' }],
   cycleStart: [{ required: true, message: '请选择周期开始日期', trigger: 'change' }],
   cycleEnd: [{ required: true, message: '请选择周期结束日期', trigger: 'change' }],
-  paymentDate: [{ required: true, message: '请选择支付日期', trigger: 'change' }],
-  basePay: [{ required: true, message: '请输入基本工资', trigger: 'blur' }],
-  actualWorkTime: [{ required: true, message: '请输入实际工时', trigger: 'blur' }],
-  insuranceTotal: [{ required: true, message: '请输入社保合计', trigger: 'blur' }],
-  pfContribution: [{ required: true, message: '请输入公积金', trigger: 'blur' }],
-  taxAmount: [{ required: true, message: '请输入税款', trigger: 'blur' }],
-  grossPay: [{ required: true, message: '请输入应发工资', trigger: 'blur' }],
-  totalDeduction: [{ required: true, message: '请输入扣除合计', trigger: 'blur' }],
-  netPay: [{ required: true, message: '请输入实发工资', trigger: 'blur' }],
-  paymentStatus: [{ required: true, message: '请选择支付状态', trigger: 'change' }]
+  basePay: [{ required: true, message: '请输入基本工资', trigger: 'blur' }]
 }
 
 const loadData = async () => {
@@ -305,7 +340,7 @@ const loadData = async () => {
       paymentStatus: searchForm.paymentStatus || undefined
     }
     
-    const res = await getSalaries(params)
+    const res = await getPaySlips(params)
     
     // 客户端分页
     const allData = res.data || []
@@ -332,6 +367,26 @@ const handleReset = () => {
   handleSearch()
 }
 
+// 计算汇总金额
+const calculateTotal = () => {
+  // 计算应发工资 = 基本工资 + 绩效奖金 + 加班费 + 补贴
+  const grossPay = (form.basePay || 0) + (form.bonusPay || 0) + 
+                   (form.overtimePay || 0) + (form.allowance || 0)
+  form.grossPay = parseFloat(grossPay.toFixed(2))
+  
+  // 计算扣除合计 = 养老 + 医疗 + 失业 + 工伤 + 公积金 + 税款 + 迟到 + 早退 + 旷工 + 请假
+  const totalDeduction = (form.pensionDeduction || 0) + (form.medicalDeduction || 0) + 
+                         (form.unemploymentDeduction || 0) + (form.injuryDeduction || 0) +
+                         (form.pfDeduction || 0) + (form.taxAmount || 0) +
+                         (form.lateDeduction || 0) + (form.earlyLeaveDeduction || 0) +
+                         (form.absentDeduction || 0) + (form.leaveDeduction || 0)
+  form.totalDeduction = parseFloat(totalDeduction.toFixed(2))
+  
+  // 计算实发工资 = 应发工资 - 扣除合计
+  const netPay = grossPay - totalDeduction
+  form.netPay = parseFloat(netPay.toFixed(2))
+}
+
 const handleAdd = () => {
   dialogTitle.value = '新增薪资记录'
   Object.assign(form, {
@@ -339,21 +394,27 @@ const handleAdd = () => {
     onDutyWorkerId: null,
     cycleStart: '',
     cycleEnd: '',
-    paymentDate: '',
+    deadlineDate: '',
+    actualPaymentDate: '',
+    paymentMethod: '银行转账',
     basePay: 0,
-    performanceBonus: 0,
+    bonusPay: 0,
     overtimePay: 0,
     allowance: 0,
-    actualWorkTime: 0,
-    insuranceTotal: 0,
-    pfContribution: 0,
+    pensionDeduction: 0,
+    medicalDeduction: 0,
+    unemploymentDeduction: 0,
+    injuryDeduction: 0,
+    pfDeduction: 0,
     taxAmount: 0,
     lateDeduction: 0,
-    customAddDeduct: 0,
+    earlyLeaveDeduction: 0,
+    absentDeduction: 0,
+    leaveDeduction: 0,
     grossPay: 0,
     totalDeduction: 0,
     netPay: 0,
-    paymentStatus: 'PENDING'
+    confirmStatus: 1
   })
   dialogVisible.value = true
 }
@@ -387,10 +448,10 @@ const handleSubmit = async () => {
       submitLoading.value = true
       try {
         if (form.payRecordId) {
-          await updateSalary(form.payRecordId, form)
+          await updatePaySlip(form.payRecordId, form)
           ElMessage.success('更新成功')
         } else {
-          await createSalary(form)
+          await createPaySlip(form)
           ElMessage.success('新增成功')
         }
         dialogVisible.value = false

@@ -60,6 +60,11 @@ const routes = [
                 component: () => import('../views/admin/SalaryManagement.vue')
             },
             {
+                path: 'salary-configs',
+                name: 'AdminSalaryConfigs',
+                component: () => import('../views/admin/SalaryConfigManagement.vue')
+            },
+            {
                 path: 'companies',
                 name: 'AdminCompanies',
                 component: () => import('../views/admin/CompanyManagement.vue')
