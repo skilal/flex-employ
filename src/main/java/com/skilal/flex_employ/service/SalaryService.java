@@ -182,34 +182,51 @@ public class SalaryService {
         }
         slip.setOvertimePay(totalOvertimePay.setScale(2, RoundingMode.HALF_UP));
 
-        // 6. 绩效与奖金 (Income)
+        // 6. 绩效、补贴与提成 (Income)
         BigDecimal performancePay = config.getPerformanceBonus() != null ? config.getPerformanceBonus()
                 : BigDecimal.ZERO;
         BigDecimal fixedBonus = config.getBonus() != null ? config.getBonus() : BigDecimal.ZERO;
-        // 提成目前暂未关联具体业务数据，先取 0，待后续扩展
-        slip.setBonusPay(performancePay.add(fixedBonus));
+        BigDecimal allowance = config.getAllowance() != null ? config.getAllowance() : BigDecimal.ZERO;
+        // 提成目前暂未关联具体业务，取配置的默认提成（如有）
+        BigDecimal commission = config.getCommission() != null ? config.getCommission() : BigDecimal.ZERO;
+
+        slip.setBonusPay(performancePay.add(fixedBonus).add(commission));
+        slip.setAllowance(allowance);
 
         // 6. 应发工资总额 (Gross Pay) - 计算社保基数的前置条件
-        BigDecimal grossPay = basePay.add(slip.getBonusPay()).add(slip.getOvertimePay());
+        BigDecimal grossPay = (basePay != null ? basePay : BigDecimal.ZERO)
+                .add(slip.getBonusPay() != null ? slip.getBonusPay() : BigDecimal.ZERO)
+                .add(slip.getOvertimePay() != null ? slip.getOvertimePay() : BigDecimal.ZERO)
+                .add(slip.getAllowance() != null ? slip.getAllowance() : BigDecimal.ZERO);
         slip.setGrossPay(grossPay);
 
         // 7. 社保基数确定逻辑
         BigDecimal socialBase = worker.getSocialSecurityBase();
-        if (socialBase == null) {
+        boolean isFirstMonth = (socialBase == null);
+        if (isFirstMonth) {
             // 首月核定：使用应发工资总额
             socialBase = grossPay;
-            // 应用上下限
-            BigDecimal lower = config.getSocialSecurityBaseLower() != null ? config.getSocialSecurityBaseLower()
-                    : BigDecimal.ZERO;
-            BigDecimal upper = config.getSocialSecurityBaseUpper() != null ? config.getSocialSecurityBaseUpper()
-                    : new BigDecimal("999999");
+        }
 
-            if (socialBase.compareTo(lower) < 0)
-                socialBase = lower;
-            if (socialBase.compareTo(upper) > 0)
-                socialBase = upper;
+        // 兜底：确保 socialBase 绝不为 null，防止后续 compareTo 抛出 NPE
+        if (socialBase == null) {
+            socialBase = BigDecimal.ZERO;
+        }
 
-            // 持久化到员工表
+        // 统一应用上下限 (无论是首月自动核定还是手动预设，均需符合岗位配置边界)
+        BigDecimal lower = config.getSocialSecurityBaseLower() != null ? config.getSocialSecurityBaseLower()
+                : BigDecimal.ZERO;
+        BigDecimal upper = config.getSocialSecurityBaseUpper() != null ? config.getSocialSecurityBaseUpper()
+                : new BigDecimal("999999");
+
+        if (socialBase.compareTo(lower) < 0)
+            socialBase = lower;
+        if (socialBase.compareTo(upper) > 0)
+            socialBase = upper;
+
+        // 若基数发生变化（如首次核定，或手动值非法被强制纠偏），则同步持久化回员工表
+        BigDecimal originalBase = worker.getSocialSecurityBase();
+        if (originalBase == null || originalBase.compareTo(socialBase) != 0) {
             worker.setSocialSecurityBase(socialBase);
             workerMapper.update(worker);
         }
@@ -243,8 +260,93 @@ public class SalaryService {
                 .add(slip.getAbsenceDeduction())
                 .add(slip.getLeaveDeduction());
 
-        slip.setTotalDeduction(totalDeduction);
-        slip.setNetPay(slip.getGrossPay().subtract(totalDeduction));
+        // 9. 个人所得税 (PIT) 核算 - 累计预扣预缴法
+        // 考勤扣款合计 (这些不应计入纳税基数)
+        BigDecimal attendanceDeductionTotal = slip.getLateDeduction()
+                .add(slip.getEarlyLeaveDeduction())
+                .add(slip.getAbsentDeduction())
+                .add(slip.getAbsenceDeduction())
+                .add(slip.getLeaveDeduction());
+
+        // 获取本年度该员工的所有历史薪资记录，用于累计核算
+        int currentYear = slip.getCycleEnd().getYear();
+        int currentMonthCount = slip.getCycleEnd().getMonthValue();
+        List<PaySlip> yearSlips = paySlipMapper.findByUserId(worker.getUserId());
+
+        BigDecimal cumulativeGross = grossPay;
+        BigDecimal cumulativeAttendanceDeduction = attendanceDeductionTotal;
+        BigDecimal cumulativeInsurance = insuranceDeduction;
+        BigDecimal cumulativeTaxPaid = BigDecimal.ZERO;
+
+        if (yearSlips != null) {
+            for (PaySlip history : yearSlips) {
+                // 仅统计本年度且在当前周期结束日期之前的已生成记录
+                if (history.getCycleEnd().getYear() == currentYear
+                        && history.getCycleEnd().isBefore(slip.getCycleEnd())) {
+                    cumulativeGross = cumulativeGross
+                            .add(history.getGrossPay() != null ? history.getGrossPay() : BigDecimal.ZERO);
+
+                    // 汇总历史记录的考勤扣款
+                    BigDecimal histAttendance = (history.getLateDeduction() != null ? history.getLateDeduction()
+                            : BigDecimal.ZERO)
+                            .add(history.getEarlyLeaveDeduction() != null ? history.getEarlyLeaveDeduction()
+                                    : BigDecimal.ZERO)
+                            .add(history.getAbsentDeduction() != null ? history.getAbsentDeduction() : BigDecimal.ZERO)
+                            .add(history.getAbsenceDeduction() != null ? history.getAbsenceDeduction()
+                                    : BigDecimal.ZERO)
+                            .add(history.getLeaveDeduction() != null ? history.getLeaveDeduction() : BigDecimal.ZERO);
+
+                    cumulativeAttendanceDeduction = cumulativeAttendanceDeduction.add(histAttendance);
+
+                    // 汇总历史记录的个人五险一金
+                    BigDecimal histInsurance = (history.getPensionDeduction() != null ? history.getPensionDeduction()
+                            : BigDecimal.ZERO)
+                            .add(history.getMedicalDeduction() != null ? history.getMedicalDeduction()
+                                    : BigDecimal.ZERO)
+                            .add(history.getUnemploymentDeduction() != null ? history.getUnemploymentDeduction()
+                                    : BigDecimal.ZERO)
+                            .add(history.getInjuryDeduction() != null ? history.getInjuryDeduction() : BigDecimal.ZERO)
+                            .add(history.getPfDeduction() != null ? history.getPfDeduction() : BigDecimal.ZERO);
+
+                    cumulativeInsurance = cumulativeInsurance.add(histInsurance);
+                    cumulativeTaxPaid = cumulativeTaxPaid
+                            .add(history.getTaxAmount() != null ? history.getTaxAmount() : BigDecimal.ZERO);
+                }
+            }
+        }
+
+        // 累计减除费用 (5000 * 累计发薪月数)
+        BigDecimal cumulativeStandardDeduction = new BigDecimal("5000").multiply(new BigDecimal(currentMonthCount));
+
+        // 累计预扣缴所得额 = 累计收入 - 累计考勤缴罚 - 累计减除费用 - 累计自缴五险一金
+        BigDecimal cumulativeTaxableIncome = cumulativeGross
+                .subtract(cumulativeAttendanceDeduction)
+                .subtract(cumulativeStandardDeduction)
+                .subtract(cumulativeInsurance);
+
+        if (cumulativeTaxableIncome.compareTo(BigDecimal.ZERO) < 0) {
+            cumulativeTaxableIncome = BigDecimal.ZERO;
+        }
+
+        // 计算截止本月的年度应缴预扣税总额
+        BigDecimal totalTaxDueYTD = calculatePersonalIncomeTax(cumulativeTaxableIncome);
+
+        // 本月预扣额 = 截止本月总额 - 以前月份已预缴额
+        BigDecimal currentMonthTax = totalTaxDueYTD.subtract(cumulativeTaxPaid);
+        if (currentMonthTax.compareTo(BigDecimal.ZERO) < 0) {
+            currentMonthTax = BigDecimal.ZERO;
+        }
+        slip.setTaxAmount(currentMonthTax);
+
+        // 最终汇总
+        slip.setTotalDeduction(totalDeduction.add(currentMonthTax));
+
+        BigDecimal netPay = grossPay.subtract(slip.getTotalDeduction());
+        // 兜底逻辑：实发工资最低为 0
+        if (netPay.compareTo(BigDecimal.ZERO) < 0) {
+            netPay = BigDecimal.ZERO;
+        }
+        slip.setNetPay(netPay);
         slip.setActualPaymentDate(null); // 初始为空，表示未支付
         slip.setConfirmStatus(1);
 
@@ -465,5 +567,40 @@ public class SalaryService {
         return new BigDecimal(finalHours)
                 .multiply(hourlyBase)
                 .multiply(multiplier);
+    }
+
+    /**
+     * 年度累计超额累进个税换算算法 (基于年度累计应纳税所得额)
+     */
+    private BigDecimal calculatePersonalIncomeTax(BigDecimal taxableIncome) {
+        if (taxableIncome.compareTo(BigDecimal.ZERO) <= 0)
+            return BigDecimal.ZERO;
+
+        BigDecimal tax;
+        // 年度级数阈值
+        BigDecimal b1 = new BigDecimal("36000");
+        BigDecimal b2 = new BigDecimal("144000");
+        BigDecimal b3 = new BigDecimal("300000");
+        BigDecimal b4 = new BigDecimal("420000");
+        BigDecimal b5 = new BigDecimal("660000");
+        BigDecimal b6 = new BigDecimal("960000");
+
+        if (taxableIncome.compareTo(b1) <= 0) {
+            tax = taxableIncome.multiply(new BigDecimal("0.03"));
+        } else if (taxableIncome.compareTo(b2) <= 0) {
+            tax = taxableIncome.multiply(new BigDecimal("0.10")).subtract(new BigDecimal("2520"));
+        } else if (taxableIncome.compareTo(b3) <= 0) {
+            tax = taxableIncome.multiply(new BigDecimal("0.20")).subtract(new BigDecimal("16920"));
+        } else if (taxableIncome.compareTo(b4) <= 0) {
+            tax = taxableIncome.multiply(new BigDecimal("0.25")).subtract(new BigDecimal("31920"));
+        } else if (taxableIncome.compareTo(b5) <= 0) {
+            tax = taxableIncome.multiply(new BigDecimal("0.30")).subtract(new BigDecimal("52920"));
+        } else if (taxableIncome.compareTo(b6) <= 0) {
+            tax = taxableIncome.multiply(new BigDecimal("0.35")).subtract(new BigDecimal("85920"));
+        } else {
+            tax = taxableIncome.multiply(new BigDecimal("0.45")).subtract(new BigDecimal("181920"));
+        }
+
+        return tax.setScale(2, RoundingMode.HALF_UP);
     }
 }

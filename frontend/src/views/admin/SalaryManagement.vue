@@ -416,7 +416,8 @@ const calculateTotal = () => {
   form.totalDeduction = parseFloat(totalDeduction.toFixed(2))
   
   // 计算实发工资 = 应发工资 - 扣除合计
-  const netPay = grossPay - totalDeduction
+  let netPay = grossPay - totalDeduction
+  if (netPay < 0) netPay = 0
   form.netPay = parseFloat(netPay.toFixed(2))
 }
 

@@ -16,7 +16,7 @@ public interface SalaryConfigMapper {
         @Insert("INSERT INTO salary_config (config_name, pay_cycle, billing_method, base_rate, has_overtime_pay, " +
                         "late_penalty, early_penalty, absent_penalty, absence_penalty, sick_leave_rate, personal_leave_rate, "
                         +
-                        "performance_bonus, commission, bonus, pension_rate, medical_rate, unemployment_rate, injury_rate, housing_fund_rate, "
+                        "performance_bonus, commission, bonus, allowance, pension_rate, medical_rate, unemployment_rate, injury_rate, housing_fund_rate, "
                         +
                         "pension_rate_ent, medical_rate_ent, unemployment_rate_ent, injury_rate_ent, housing_fund_rate_ent, "
                         +
@@ -27,7 +27,7 @@ public interface SalaryConfigMapper {
                         "VALUES (#{configName}, #{payCycle}, #{billingMethod}, #{baseRate}, #{hasOvertimePay}, " +
                         "#{latePenalty}, #{earlyPenalty}, #{absentPenalty}, #{absencePenalty}, #{sickLeaveRate}, #{personalLeaveRate}, "
                         +
-                        "#{performanceBonus}, #{commission}, #{bonus}, #{pensionRate}, #{medicalRate}, #{unemploymentRate}, #{injuryRate}, #{housingFundRate}, "
+                        "#{performanceBonus}, #{commission}, #{bonus}, #{allowance}, #{pensionRate}, #{medicalRate}, #{unemploymentRate}, #{injuryRate}, #{housingFundRate}, "
                         +
                         "#{pensionRateEnt}, #{medicalRateEnt}, #{unemploymentRateEnt}, #{injuryRateEnt}, #{housingFundRateEnt}, "
                         +
@@ -45,7 +45,8 @@ public interface SalaryConfigMapper {
                         +
                         "absence_penalty = #{absencePenalty}, sick_leave_rate = #{sickLeaveRate}, personal_leave_rate = #{personalLeaveRate}, "
                         +
-                        "performance_bonus = #{performanceBonus}, commission = #{commission}, bonus = #{bonus}, " +
+                        "performance_bonus = #{performanceBonus}, commission = #{commission}, bonus = #{bonus}, allowance = #{allowance}, "
+                        +
                         "pension_rate = #{pensionRate}, medical_rate = #{medicalRate}, unemployment_rate = #{unemploymentRate}, "
                         +
                         "injury_rate = #{injuryRate}, housing_fund_rate = #{housingFundRate}, " +

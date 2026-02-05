@@ -23,6 +23,7 @@ public class SalaryConfig {
     private BigDecimal performanceBonus;
     private BigDecimal commission;
     private BigDecimal bonus;
+    private BigDecimal allowance; // 固定补贴
 
     // 新增字段：五险一金费率（个人部分）
     private BigDecimal pensionRate;
