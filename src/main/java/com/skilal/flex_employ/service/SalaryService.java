@@ -12,7 +12,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SalaryService {
@@ -35,6 +37,9 @@ public class SalaryService {
     @Autowired
     private PositionMapper positionMapper;
 
+    @Autowired
+    private AttendanceService attendanceService;
+
     // 每天凌晨2点自动生成薪资记录
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
@@ -42,6 +47,9 @@ public class SalaryService {
         // 查找所有在岗员工
         List<OnDutyWorker> activeWorkers = workerMapper.findAllActive();
         for (OnDutyWorker worker : activeWorkers) {
+            // 首先补全该员工的缺失考勤（缺勤、休假等）
+            attendanceService.fillMissingAttendance(worker);
+            // 然后尝试生成薪资条
             generateForWorker(worker);
         }
     }
@@ -66,8 +74,8 @@ public class SalaryService {
         }
 
         LocalDate cycleEnd = calculateCycleEnd(cycleStart, config.getPayCycle());
-        // 如果周期结束日还没到，不生成
-        if (cycleEnd.isAfter(LocalDate.now()))
+        // 确保周期结束日已过（即至少到了结束日的次日）且考勤已记录
+        if (!cycleEnd.isBefore(LocalDate.now()))
             return;
 
         // 检查是否已经生成过（防止重复）
@@ -87,8 +95,7 @@ public class SalaryService {
         slip.setCycleEnd(cycleEnd);
 
         // 最晚发放日判定
-        int bufferDays = config.getPayCycle().equals("月结") ? 30 : 15;
-        slip.setDeadlineDate(cycleEnd.plusDays(bufferDays));
+        slip.setDeadlineDate(calculateDeadlineDate(worker.getOnDutyWorkerId(), cycleEnd));
 
         // 基础工资计算 (简化逻辑：按天/按小时 * 有效时间)
         BigDecimal basePay = config.getBaseRate(); // 这里应根据考勤实际天数/小时数计算，目前取模版值
@@ -99,11 +106,15 @@ public class SalaryService {
         BigDecimal earlyDeduction = BigDecimal.ZERO;
         BigDecimal absentDeduction = BigDecimal.ZERO;
         for (Attendance a : attendances) {
-            if ("迟到".equals(a.getInStatus()))
+            String status = a.getAttendanceStatus();
+            if (status == null)
+                continue;
+
+            if (status.contains("迟到"))
                 lateDeduction = lateDeduction.add(config.getLatePenalty());
-            if ("早退".equals(a.getOutStatus()))
+            if (status.contains("早退"))
                 earlyDeduction = earlyDeduction.add(config.getEarlyPenalty());
-            if ("缺勤".equals(a.getInStatus()))
+            if (status.contains("缺勤"))
                 absentDeduction = absentDeduction.add(config.getAbsentPenalty());
         }
         slip.setLateDeduction(lateDeduction);
@@ -123,18 +134,40 @@ public class SalaryService {
         }
         slip.setLeaveDeduction(leaveDeduction);
 
-        // 五险一金与税 (目前模拟固定值或简单算法)
-        slip.setPensionDeduction(basePay.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP));
-        slip.setMedicalDeduction(basePay.multiply(new BigDecimal("0.02")).setScale(2, RoundingMode.HALF_UP));
-        slip.setPfDeduction(basePay.multiply(new BigDecimal("0.07")).setScale(2, RoundingMode.HALF_UP));
+        // 5. 绩效与奖金 (Income)
+        BigDecimal performancePay = config.getPerformanceBonus() != null ? config.getPerformanceBonus()
+                : BigDecimal.ZERO;
+        BigDecimal fixedBonus = config.getBonus() != null ? config.getBonus() : BigDecimal.ZERO;
+        // 提成目前暂未关联具体业务数据，先取 0，待后续扩展
+        slip.setBonusPay(performancePay.add(fixedBonus));
+
+        // 6. 五险一金 (Deductions) - 使用配置的费率
+        slip.setPensionDeduction(
+                basePay.multiply(config.getPensionRate() != null ? config.getPensionRate() : BigDecimal.ZERO)
+                        .setScale(2, RoundingMode.HALF_UP));
+        slip.setMedicalDeduction(
+                basePay.multiply(config.getMedicalRate() != null ? config.getMedicalRate() : BigDecimal.ZERO)
+                        .setScale(2, RoundingMode.HALF_UP));
+        slip.setUnemploymentDeduction(
+                basePay.multiply(config.getUnemploymentRate() != null ? config.getUnemploymentRate() : BigDecimal.ZERO)
+                        .setScale(2, RoundingMode.HALF_UP));
+        slip.setInjuryDeduction(
+                basePay.multiply(config.getInjuryRate() != null ? config.getInjuryRate() : BigDecimal.ZERO).setScale(2,
+                        RoundingMode.HALF_UP));
+        slip.setPfDeduction(
+                basePay.multiply(config.getHousingFundRate() != null ? config.getHousingFundRate() : BigDecimal.ZERO)
+                        .setScale(2, RoundingMode.HALF_UP));
 
         // 合计
-        BigDecimal totalDeduction = slip.getPensionDeduction().add(slip.getMedicalDeduction())
-                .add(slip.getPfDeduction()).add(slip.getLateDeduction())
+        BigDecimal insuranceDeduction = slip.getPensionDeduction().add(slip.getMedicalDeduction())
+                .add(slip.getUnemploymentDeduction()).add(slip.getInjuryDeduction())
+                .add(slip.getPfDeduction());
+
+        BigDecimal totalDeduction = insuranceDeduction.add(slip.getLateDeduction())
                 .add(slip.getEarlyLeaveDeduction()).add(slip.getAbsentDeduction())
                 .add(slip.getLeaveDeduction());
 
-        slip.setGrossPay(basePay); // 这里应该包含加班费等
+        slip.setGrossPay(basePay.add(slip.getBonusPay())); // 包含绩效奖金
         slip.setTotalDeduction(totalDeduction);
         slip.setNetPay(slip.getGrossPay().subtract(totalDeduction));
         slip.setActualPaymentDate(null); // 初始为空，表示未支付
@@ -156,5 +189,60 @@ public class SalaryService {
             default:
                 return start.plusMonths(1).minusDays(1);
         }
+    }
+
+    public LocalDate calculateDeadlineDate(Long onDutyWorkerId, LocalDate cycleEnd) {
+        if (onDutyWorkerId == null || cycleEnd == null)
+            return null;
+
+        OnDutyWorker worker = workerMapper.findById(onDutyWorkerId);
+        if (worker == null)
+            return cycleEnd.plusDays(15); // 兜底逻辑
+
+        Position position = positionMapper.findById(worker.getPositionId());
+        if (position == null || position.getSalaryConfigId() == null)
+            return cycleEnd.plusDays(15);
+
+        SalaryConfig config = salaryConfigMapper.findById(position.getSalaryConfigId());
+        if (config == null)
+            return cycleEnd.plusDays(15);
+
+        if ("月结".equals(config.getPayCycle())) {
+            return cycleEnd.plusMonths(1);
+        } else {
+            return cycleEnd.plusDays(15);
+        }
+    }
+
+    public Map<String, LocalDate> getSuggestedCycle(Long onDutyWorkerId) {
+        Map<String, LocalDate> result = new HashMap<>();
+        OnDutyWorker worker = workerMapper.findById(onDutyWorkerId);
+        if (worker == null)
+            return result;
+
+        // 1. 确定开始日期
+        PaySlip lastSlip = paySlipMapper.findLatestByWorkerId(onDutyWorkerId);
+        LocalDate start;
+        if (lastSlip != null) {
+            start = lastSlip.getCycleEnd().plusDays(1);
+        } else {
+            start = worker.getHireDate() != null ? worker.getHireDate() : LocalDate.now();
+        }
+        result.put("cycleStart", start);
+
+        // 2. 查找配置并确定结束日期
+        Position position = positionMapper.findById(worker.getPositionId());
+        if (position != null && position.getSalaryConfigId() != null) {
+            SalaryConfig config = salaryConfigMapper.findById(position.getSalaryConfigId());
+            if (config != null) {
+                result.put("cycleEnd", calculateCycleEnd(start, config.getPayCycle()));
+            }
+        }
+
+        if (!result.containsKey("cycleEnd")) {
+            result.put("cycleEnd", start);
+        }
+
+        return result;
     }
 }

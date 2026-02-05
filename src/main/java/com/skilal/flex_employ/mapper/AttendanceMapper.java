@@ -56,15 +56,15 @@ public interface AttendanceMapper {
         Attendance findById(Long attendanceId);
 
         @Insert("INSERT INTO attendance (on_duty_worker_id, position_id, attendance_date, actual_check_in, " +
-                        "actual_check_out, in_status, out_status, attendance_status) " +
+                        "actual_check_out, attendance_status) " +
                         "VALUES (#{onDutyWorkerId}, #{positionId}, #{attendanceDate}, #{actualCheckIn}, #{actualCheckOut}, "
                         +
-                        "#{inStatus}, #{outStatus}, #{attendanceStatus})")
+                        "#{attendanceStatus})")
         @Options(useGeneratedKeys = true, keyProperty = "attendanceId")
         int insert(Attendance attendance);
 
         @Update("UPDATE attendance SET attendance_date = #{attendanceDate}, actual_check_in = #{actualCheckIn}, " +
-                        "actual_check_out = #{actualCheckOut}, in_status = #{inStatus}, out_status = #{outStatus}, " +
+                        "actual_check_out = #{actualCheckOut}, " +
                         "attendance_status = #{attendanceStatus} WHERE attendance_id = #{attendanceId}")
         int update(Attendance attendance);
 

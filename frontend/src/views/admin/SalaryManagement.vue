@@ -35,7 +35,12 @@
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="payRecordId" label="薪资ID" width="100" />
-        <el-table-column prop="onDutyWorkerId" label="在岗员工ID" width="120" />
+        <el-table-column label="员工信息" width="180">
+          <template #default="{ row }">
+            <div style="font-weight: bold">{{ row.userName }}</div>
+            <div style="font-size: 12px; color: #909399">{{ row.positionName }}</div>
+          </template>
+        </el-table-column>
         <el-table-column prop="cycleStart" label="周期开始" width="120" />
         <el-table-column prop="cycleEnd" label="周期结束" width="120" />
         <el-table-column prop="basePay" label="基本工资" width="100">
@@ -92,8 +97,22 @@
         :rules="rules"
         label-width="120px"
       >
-        <el-form-item label="在岗员工ID" prop="onDutyWorkerId">
-          <el-input-number v-model="form.onDutyWorkerId" :min="1" style="width: 100%" />
+        <el-form-item label="在岗员工" prop="onDutyWorkerId">
+          <el-select
+            v-model="form.onDutyWorkerId"
+            placeholder="请选择在岗员工"
+            filterable
+            style="width: 100%"
+            :disabled="!!form.payRecordId"
+            @change="handleWorkerChange"
+          >
+            <el-option
+              v-for="item in workers"
+              :key="item.onDutyWorkerId"
+              :label="item.userName + ' - ' + item.positionName"
+              :value="item.onDutyWorkerId"
+            />
+          </el-select>
         </el-form-item>
 
         <el-row :gutter="20">
@@ -113,9 +132,10 @@
               <el-date-picker
                 v-model="form.cycleEnd"
                 type="date"
-                placeholder="选择日期"
+                placeholder="选择结束日期"
                 value-format="YYYY-MM-DD"
                 style="width: 100%"
+                @change="updateDeadline"
               />
             </el-form-item>
           </el-col>
@@ -281,7 +301,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPaySlips, createPaySlip, updatePaySlip, deleteSalary } from '../../api/salary'
+import { getPaySlips, createPaySlip, updatePaySlip, deleteSalary, getPredictDeadline, getSuggestedCycle } from '../../api/salary'
+import { getWorkers } from '../../api/worker'
 
 const searchForm = reactive({
   // 现在通过 actualPaymentDate 判断支付状态，不需要独立的筛选字段
@@ -292,6 +313,7 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const workers = ref([])
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -387,6 +409,35 @@ const calculateTotal = () => {
   form.netPay = parseFloat(netPay.toFixed(2))
 }
 
+// 自动更新建议周期和最晚支付日期
+const handleWorkerChange = async (workerId) => {
+  if (!workerId) return
+  
+  try {
+    const res = await getSuggestedCycle(workerId)
+    if (res.data) {
+      form.cycleStart = res.data.cycleStart
+      form.cycleEnd = res.data.cycleEnd
+      // 填充周期后，同步触发最晚发放日期的预测
+      updateDeadline()
+    }
+  } catch (error) {
+    console.error('获取建议周期失败:', error)
+  }
+}
+
+// 自动更新最晚支付日期
+const updateDeadline = async () => {
+  if (form.onDutyWorkerId && form.cycleEnd) {
+    try {
+      const res = await getPredictDeadline(form.onDutyWorkerId, form.cycleEnd)
+      form.deadlineDate = res.data
+    } catch (error) {
+      console.error('获取预测日期失败:', error)
+    }
+  }
+}
+
 const handleAdd = () => {
   dialogTitle.value = '新增薪资记录'
   Object.assign(form, {
@@ -480,8 +531,18 @@ const handleCurrentChange = (val) => {
   loadData()
 }
 
+const loadWorkers = async () => {
+  try {
+    const res = await getWorkers()
+    workers.value = res.data || []
+  } catch (error) {
+    console.error('加载员工列表失败:', error)
+  }
+}
+
 onMounted(() => {
   loadData()
+  loadWorkers()
 })
 </script>
 

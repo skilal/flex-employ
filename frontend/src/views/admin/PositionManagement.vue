@@ -40,12 +40,36 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="salaryConfigName" label="薪资模版" width="150">
+        <el-table-column prop="salaryConfigName" label="薪资模版" width="150" />
+        <el-table-column label="招聘进度" width="120" align="center">
           <template #default="{ row }">
-             <el-tag type="info">{{ row.salaryConfigName || '未关联' }}</el-tag>
+            <el-tooltip :content="'总数: ' + row.totalPositions + ' / 剩余: ' + row.remainingPositions" placement="top">
+              <el-progress 
+                :percentage="row.totalPositions > 0 ? Math.round(((row.totalPositions - row.remainingPositions) / row.totalPositions) * 100) : 0" 
+                :format="() => row.remainingPositions + '/' + row.totalPositions"
+                :status="(row.remainingPositions === 0) ? 'exception' : ''"
+              />
+            </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column label="招聘状态" width="100" align="center">
+        <el-table-column label="岗位周期" width="180">
+          <template #default="{ row }">
+            <div style="font-size: 12px;">{{ row.workStartTime || '-' }} 至</div>
+            <div style="font-size: 12px;">{{ row.workEndTime || '-' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="工作时段" width="120">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">{{ row.checkInTime ? row.checkInTime.substring(0,5) : '-' }} - {{ row.checkOutTime ? row.checkOutTime.substring(0,5) : '-' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="工时频率" width="120">
+          <template #default="{ row }">
+            <div style="font-size: 12px;">每周 {{ row.weeklyFreq || 0 }} 天</div>
+            <div style="font-size: 12px;">每天 {{ row.dailyHours || 0 }} 时</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="招聘状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="row.positionStatus === 1 ? 'success' : 'info'">
               {{ row.positionStatus === 1 ? '招聘中' : '已停止' }}
@@ -108,14 +132,78 @@
           </el-col>
         </el-row>
 
-        <el-form-item label="工作地点" prop="workLocation">
-          <el-input v-model="form.workLocation" placeholder="详细工作地址" />
-        </el-form-item>
+        <el-divider>周期与考勤配置</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="计薪周期开始" prop="workStartTime">
+              <el-date-picker v-model="form.workStartTime" type="date" value-format="YYYY-MM-DD" placeholder="开始日期" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="计薪周期结束" prop="workEndTime">
+              <el-date-picker v-model="form.workEndTime" type="date" value-format="YYYY-MM-DD" placeholder="结束日期" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="招聘人数" prop="totalPositions">
+            <el-form-item label="上班打卡时间" prop="checkInTime">
+              <el-time-picker v-model="form.checkInTime" value-format="HH:mm:ss" placeholder="09:00:00" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="下班打卡时间" prop="checkOutTime">
+              <el-time-picker v-model="form.checkOutTime" value-format="HH:mm:ss" placeholder="18:00:00" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="每周工作日" prop="workingDaysArray">
+          <el-checkbox-group v-model="form.workingDaysArray">
+            <el-checkbox label="1">周一</el-checkbox>
+            <el-checkbox label="2">周二</el-checkbox>
+            <el-checkbox label="3">周三</el-checkbox>
+            <el-checkbox label="4">周四</el-checkbox>
+            <el-checkbox label="5">周五</el-checkbox>
+            <el-checkbox label="6">周六</el-checkbox>
+            <el-checkbox label="7">周日</el-checkbox>
+          </el-checkbox-group>
+          <div style="font-size: 12px; color: #909399;">缺省即代表休息（不计缺勤）</div>
+        </el-form-item>
+
+        <el-divider>人数与工时设置</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="招聘总人数" prop="totalPositions">
               <el-input-number v-model="form.totalPositions" :min="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="剩余名额" prop="remainingPositions">
+              <el-input-number v-model="form.remainingPositions" :min="0" :max="form.totalPositions" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="每日工时" prop="dailyHours">
+              <el-input-number v-model="form.dailyHours" :precision="1" :step="0.5" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="周工作天数" prop="weeklyFreq">
+              <el-input-number v-model="form.weeklyFreq" :min="0" :max="7" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider>管理与备注信息</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="行政区域代码" prop="regionCode">
+              <el-input v-model="form.regionCode" placeholder="如 310100" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -125,21 +213,16 @@
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="打卡上班" prop="checkInTime">
-              <el-time-picker v-model="form.checkInTime" value-format="HH:mm:ss" placeholder="早打卡" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="打卡下班" prop="checkOutTime">
-              <el-time-picker v-model="form.checkOutTime" value-format="HH:mm:ss" placeholder="晚打卡" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="薪资摘要描述" prop="salaryDesc">
+          <el-input v-model="form.salaryDesc" placeholder="如：200元/天，包午餐" />
+        </el-form-item>
 
-        <el-form-item label="描述/要求" prop="dutyDesc">
-          <el-input type="textarea" v-model="form.dutyDesc" :rows="4" placeholder="详细岗位职责描述..." />
+        <el-form-item label="岗位职责描述" prop="dutyDesc">
+          <el-input type="textarea" v-model="form.dutyDesc" :rows="3" placeholder="详细的职责与要求内容..." />
+        </el-form-item>
+
+        <el-form-item label="特别说明" prop="specialNote">
+          <el-input v-model="form.specialNote" placeholder="对内可见的备注信息" />
         </el-form-item>
 
         <el-form-item label="岗位状态">
@@ -158,7 +241,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPositions, createPosition, updatePosition, deletePosition } from '../../api/position'
@@ -198,9 +281,29 @@ let form = reactive({
   checkOutTime: '18:00:00',
   positionStatus: 1,
   responsibleId: 1,
-  totalPositions: 10,
-  remainingPositions: 10
+  totalPositions: 1,
+  remainingPositions: 1,
+  workingDaysArray: ['1', '2', '3', '4', '5'],
+  workStartTime: '',
+  workEndTime: '',
+  specialNote: ''
 })
+
+// 自动计算逻辑
+watch(() => [form.checkInTime, form.checkOutTime], ([inTime, outTime]) => {
+  if (inTime && outTime) {
+    const start = new Date(`2000-01-01 ${inTime}`)
+    const end = new Date(`2000-01-01 ${outTime}`)
+    if (end > start) {
+      const hours = (end - start) / (1000 * 60 * 60)
+      form.dailyHours = parseFloat(hours.toFixed(1))
+    }
+  }
+})
+
+watch(() => form.workingDaysArray, (newDays) => {
+  form.weeklyFreq = newDays.length
+}, { deep: true })
 
 const rules = {
   positionName: [{ required: true, message: '必填项', trigger: 'blur' }],
@@ -249,13 +352,32 @@ const handleAdd = () => {
     positionName: '',
     salaryConfigId: null,
     laborCompanyId: null,
-    positionStatus: 1
+    positionStatus: 1,
+    totalPositions: 1,
+    remainingPositions: 1,
+    workingDaysArray: ['1', '2', '3', '4', '5'],
+    checkInTime: '09:00:00',
+    checkOutTime: '18:00:00',
+    workStartTime: '',
+    workEndTime: '',
+    dailyHours: 8,
+    weeklyFreq: 5,
+    responsibleId: 1,
+    salaryDesc: '',
+    specialNote: '',
+    regionCode: '310100'
   })
   dialogFormVisible.value = true
 }
 
 const handleEdit = (row) => {
   Object.assign(form, row)
+  // 处理工作日多选框回显
+  if (row.workingDays) {
+    form.workingDaysArray = row.workingDays.split(',')
+  } else {
+    form.workingDaysArray = []
+  }
   dialogFormVisible.value = true
 }
 
@@ -270,6 +392,9 @@ const handleDelete = (row) => {
 const handleSubmit = async () => {
   await positionFormRef.value.validate(async (valid) => {
     if (valid) {
+      // 提交前将工作日数组转换为逗号分隔字符串
+      form.workingDays = form.workingDaysArray.join(',')
+      
       if (form.positionId) await updatePosition(form.positionId, form)
       else await createPosition(form)
       ElMessage.success('操作成功')

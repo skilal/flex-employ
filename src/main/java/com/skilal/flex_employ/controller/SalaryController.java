@@ -8,7 +8,9 @@ import com.skilal.flex_employ.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/salaries")
@@ -29,6 +31,16 @@ public class SalaryController {
         return Result.success(salaries);
     }
 
+    @GetMapping("/suggest-cycle")
+    public Result<Map<String, LocalDate>> getSuggestedCycle(@RequestParam Long onDutyWorkerId) {
+        return Result.success(salaryService.getSuggestedCycle(onDutyWorkerId));
+    }
+
+    @GetMapping("/deadline")
+    public Result<LocalDate> getDeadline(@RequestParam Long onDutyWorkerId, @RequestParam String cycleEnd) {
+        return Result.success(salaryService.calculateDeadlineDate(onDutyWorkerId, LocalDate.parse(cycleEnd)));
+    }
+
     @GetMapping("/{id}")
     public Result<PaySlip> getById(@PathVariable Long id) {
         return Result.success(paySlipMapper.findById(id));
@@ -36,10 +48,10 @@ public class SalaryController {
 
     @PostMapping
     public Result<String> createSalary(@RequestBody PaySlip paySlip) {
-        // 自动计算最晚支付日期（如果未设置）
-        if (paySlip.getDeadlineDate() == null && paySlip.getCycleEnd() != null) {
-            // 默认使用周期结束日期 + 15天作为最晚支付日期
-            paySlip.setDeadlineDate(paySlip.getCycleEnd().plusDays(15));
+        // 自动计算最晚支付日期
+        if (paySlip.getCycleEnd() != null) {
+            paySlip.setDeadlineDate(
+                    salaryService.calculateDeadlineDate(paySlip.getOnDutyWorkerId(), paySlip.getCycleEnd()));
         }
 
         paySlipMapper.insert(paySlip);
@@ -50,9 +62,10 @@ public class SalaryController {
     public Result<String> updateSalary(@PathVariable Long id, @RequestBody PaySlip paySlip) {
         paySlip.setPayRecordId(id);
 
-        // 自动计算最晚支付日期（如果未设置）
-        if (paySlip.getDeadlineDate() == null && paySlip.getCycleEnd() != null) {
-            paySlip.setDeadlineDate(paySlip.getCycleEnd().plusDays(15));
+        // 自动计算最晚支付日期
+        if (paySlip.getCycleEnd() != null) {
+            paySlip.setDeadlineDate(
+                    salaryService.calculateDeadlineDate(paySlip.getOnDutyWorkerId(), paySlip.getCycleEnd()));
         }
 
         paySlipMapper.update(paySlip);

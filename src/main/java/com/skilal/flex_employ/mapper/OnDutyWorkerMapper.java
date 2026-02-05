@@ -40,7 +40,8 @@ public interface OnDutyWorkerMapper {
                         "WHERE w.user_id = #{userId}")
         List<OnDutyWorker> findByUserId(Long userId);
 
-        @Select("SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate " +
+        @Select("SELECT w.*, w.user_id AS userId, w.position_id AS positionId, w.worker_status AS workerStatus, " +
+                        "w.hire_date AS hireDate, w.leave_date AS leaveDate " +
                         "FROM on_duty_worker w WHERE on_duty_worker_id = #{onDutyWorkerId}")
         OnDutyWorker findById(Long onDutyWorkerId);
 

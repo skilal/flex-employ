@@ -89,6 +89,24 @@ export function updatePaySlip(id, data) {
     })
 }
 
+// 获取建议计薪周期
+export function getSuggestedCycle(onDutyWorkerId) {
+    return request({
+        url: '/salaries/suggest-cycle',
+        method: 'get',
+        params: { onDutyWorkerId }
+    })
+}
+
+// 预测最晚发放日期
+export function getPredictDeadline(onDutyWorkerId, cycleEnd) {
+    return request({
+        url: '/salaries/deadline',
+        method: 'get',
+        params: { onDutyWorkerId, cycleEnd }
+    })
+}
+
 // 删除薪资记录
 export function deleteSalary(id) {
     return request({

@@ -1,7 +1,9 @@
 package com.skilal.flex_employ.service;
 
+import com.skilal.flex_employ.entity.Attendance;
 import com.skilal.flex_employ.entity.HolidayCalendar;
 import com.skilal.flex_employ.entity.OnDutyWorker;
+import com.skilal.flex_employ.mapper.AttendanceMapper;
 import com.skilal.flex_employ.mapper.HolidayCalendarMapper;
 import com.skilal.flex_employ.mapper.LeaveRequestMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
@@ -23,6 +25,9 @@ public class AttendanceService {
 
     @Autowired
     private OnDutyWorkerMapper workerMapper;
+
+    @Autowired
+    private AttendanceMapper attendanceMapper;
 
     @Autowired
     private com.skilal.flex_employ.mapper.PositionMapper positionMapper;
@@ -121,5 +126,29 @@ public class AttendanceService {
         }
 
         return false;
+    }
+
+    /**
+     * 为员工补全力考勤记录（从入职至今）
+     */
+    public void fillMissingAttendance(OnDutyWorker worker) {
+        if (worker == null || worker.getOnDutyWorkerId() == null)
+            return;
+
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        // 仅检查昨天是否已有记录
+        if (attendanceMapper.countByWorkerAndDate(worker.getOnDutyWorkerId(), yesterday) == 0) {
+            Attendance attendance = new Attendance();
+            attendance.setOnDutyWorkerId(worker.getOnDutyWorkerId());
+            attendance.setPositionId(worker.getPositionId());
+            attendance.setAttendanceDate(yesterday);
+
+            // 统一调用已实现的判定逻辑
+            String status = calculateStatus(worker.getOnDutyWorkerId(), yesterday, null, null);
+            attendance.setAttendanceStatus(status);
+
+            attendanceMapper.insert(attendance);
+        }
     }
 }
