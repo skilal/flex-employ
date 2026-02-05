@@ -58,13 +58,15 @@ public class AttendanceController {
             return Result.error("该员工在 " + attendance.getAttendanceDate() + " 已有考勤记录，请勿重复添加");
         }
 
-        // 自动计算状态
-        String status = attendanceService.calculateStatus(
-                attendance.getOnDutyWorkerId(),
-                attendance.getAttendanceDate(),
-                attendance.getActualCheckIn(),
-                attendance.getActualCheckOut());
-        attendance.setAttendanceStatus(status);
+        // 如果没有被人为设定为“旷工”，则自动计算状态
+        if (!"旷工".equals(attendance.getAttendanceStatus())) {
+            String status = attendanceService.calculateStatus(
+                    attendance.getOnDutyWorkerId(),
+                    attendance.getAttendanceDate(),
+                    attendance.getActualCheckIn(),
+                    attendance.getActualCheckOut());
+            attendance.setAttendanceStatus(status);
+        }
 
         int result = attendanceMapper.insert(attendance);
         if (result > 0) {
@@ -86,13 +88,15 @@ public class AttendanceController {
             return Result.error("修改失败：该员工在 " + attendance.getAttendanceDate() + " 已有其他考勤记录");
         }
 
-        // 自动计算状态
-        String status = attendanceService.calculateStatus(
-                attendance.getOnDutyWorkerId(),
-                attendance.getAttendanceDate(),
-                attendance.getActualCheckIn(),
-                attendance.getActualCheckOut());
-        attendance.setAttendanceStatus(status);
+        // 如果没有被人为设定为“旷工”，则自动计算状态
+        if (!"旷工".equals(attendance.getAttendanceStatus())) {
+            String status = attendanceService.calculateStatus(
+                    attendance.getOnDutyWorkerId(),
+                    attendance.getAttendanceDate(),
+                    attendance.getActualCheckIn(),
+                    attendance.getActualCheckOut());
+            attendance.setAttendanceStatus(status);
+        }
 
         int result = attendanceMapper.update(attendance);
         if (result > 0) {

@@ -31,6 +31,7 @@ public class PaySlip {
     private BigDecimal lateDeduction;
     private BigDecimal earlyLeaveDeduction;
     private BigDecimal absentDeduction;
+    private BigDecimal absenceDeduction;
     private BigDecimal leaveDeduction; // 请假扣款
 
     private BigDecimal grossPay; // 应发

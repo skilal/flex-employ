@@ -14,23 +14,27 @@ public interface SalaryConfigMapper {
         SalaryConfig findById(Long id);
 
         @Insert("INSERT INTO salary_config (config_name, pay_cycle, billing_method, base_rate, has_overtime_pay, " +
-                        "late_penalty, early_penalty, absent_penalty, sick_leave_rate, personal_leave_rate, " +
+                        "late_penalty, early_penalty, absent_penalty, absence_penalty, sick_leave_rate, personal_leave_rate, "
+                        +
                         "performance_bonus, commission, bonus, pension_rate, medical_rate, unemployment_rate, injury_rate, housing_fund_rate, "
                         +
                         "pension_rate_ent, medical_rate_ent, unemployment_rate_ent, injury_rate_ent, housing_fund_rate_ent, "
                         +
                         "social_security_base_upper, social_security_base_lower, " +
                         "overtime_weekday_multiplier, overtime_weekend_multiplier, overtime_holiday_multiplier, " +
-                        "overtime_calc_mode, overtime_threshold_min, overtime_rounding_unit) " +
+                        "overtime_calc_mode, overtime_threshold_min, overtime_rounding_unit, " +
+                        "late_threshold_min, early_leave_threshold_min) " +
                         "VALUES (#{configName}, #{payCycle}, #{billingMethod}, #{baseRate}, #{hasOvertimePay}, " +
-                        "#{latePenalty}, #{earlyPenalty}, #{absentPenalty}, #{sickLeaveRate}, #{personalLeaveRate}, " +
+                        "#{latePenalty}, #{earlyPenalty}, #{absentPenalty}, #{absencePenalty}, #{sickLeaveRate}, #{personalLeaveRate}, "
+                        +
                         "#{performanceBonus}, #{commission}, #{bonus}, #{pensionRate}, #{medicalRate}, #{unemploymentRate}, #{injuryRate}, #{housingFundRate}, "
                         +
                         "#{pensionRateEnt}, #{medicalRateEnt}, #{unemploymentRateEnt}, #{injuryRateEnt}, #{housingFundRateEnt}, "
                         +
                         "#{socialSecurityBaseUpper}, #{socialSecurityBaseLower}, " +
                         "#{overtimeWeekdayMultiplier}, #{overtimeWeekendMultiplier}, #{overtimeHolidayMultiplier}, " +
-                        "#{overtimeCalcMode}, #{overtimeThresholdMin}, #{overtimeRoundingUnit})")
+                        "#{overtimeCalcMode}, #{overtimeThresholdMin}, #{overtimeRoundingUnit}, " +
+                        "#{lateThresholdMin}, #{earlyLeaveThresholdMin})")
         @Options(useGeneratedKeys = true, keyProperty = "configId")
         int insert(SalaryConfig config);
 
@@ -39,7 +43,8 @@ public interface SalaryConfigMapper {
                         +
                         "late_penalty = #{latePenalty}, early_penalty = #{earlyPenalty}, absent_penalty = #{absentPenalty}, "
                         +
-                        "sick_leave_rate = #{sickLeaveRate}, personal_leave_rate = #{personalLeaveRate}, " +
+                        "absence_penalty = #{absencePenalty}, sick_leave_rate = #{sickLeaveRate}, personal_leave_rate = #{personalLeaveRate}, "
+                        +
                         "performance_bonus = #{performanceBonus}, commission = #{commission}, bonus = #{bonus}, " +
                         "pension_rate = #{pensionRate}, medical_rate = #{medicalRate}, unemployment_rate = #{unemploymentRate}, "
                         +
@@ -53,7 +58,9 @@ public interface SalaryConfigMapper {
                         +
                         "overtime_holiday_multiplier = #{overtimeHolidayMultiplier}, overtime_calc_mode = #{overtimeCalcMode}, "
                         +
-                        "overtime_threshold_min = #{overtimeThresholdMin}, overtime_rounding_unit = #{overtimeRoundingUnit} "
+                        "overtime_threshold_min = #{overtimeThresholdMin}, overtime_rounding_unit = #{overtimeRoundingUnit}, "
+                        +
+                        "late_threshold_min = #{lateThresholdMin}, early_leave_threshold_min = #{earlyLeaveThresholdMin} "
                         +
                         "WHERE config_id = #{configId}")
         int update(SalaryConfig config);

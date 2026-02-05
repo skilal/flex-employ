@@ -7,6 +7,7 @@ import com.skilal.flex_employ.mapper.AttendanceMapper;
 import com.skilal.flex_employ.mapper.HolidayCalendarMapper;
 import com.skilal.flex_employ.mapper.LeaveRequestMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
+import com.skilal.flex_employ.mapper.SalaryConfigMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +33,9 @@ public class AttendanceService {
     @Autowired
     private com.skilal.flex_employ.mapper.PositionMapper positionMapper;
 
+    @Autowired
+    private SalaryConfigMapper salaryConfigMapper;
+
     /**
      * 计算考勤状态
      */
@@ -48,10 +52,10 @@ public class AttendanceService {
 
         // 2. 判断是否为工作日
         if (!isWorkDay(worker.getPositionId(), date)) {
-            return "正常"; // 非工作日不计缺勤
+            return "假日"; // 非工作日归类为假日
         }
 
-        // 3. 判断缺勤
+        // 3. 判断缺勤 (完全未签到)
         if (actualCheckIn == null) {
             return "缺勤";
         }
@@ -65,16 +69,37 @@ public class AttendanceService {
         LocalTime shouldCheckIn = position.getCheckInTime();
         LocalTime shouldCheckOut = position.getCheckOutTime();
 
-        boolean isLate = actualCheckIn.isAfter(shouldCheckIn);
+        // 获取薪资配置中的阈值
+        com.skilal.flex_employ.entity.SalaryConfig config = salaryConfigMapper.findById(position.getSalaryConfigId());
+        int lateThreshold = (config != null && config.getLateThresholdMin() != null) ? config.getLateThresholdMin() : 0;
+        int earlyThreshold = (config != null && config.getEarlyLeaveThresholdMin() != null)
+                ? config.getEarlyLeaveThresholdMin()
+                : 0;
 
-        // 如果还没有签退，只判断是否迟到
+        // A. 判定签到状态
+        boolean isLate = actualCheckIn.isAfter(shouldCheckIn);
+        if (isLate && lateThreshold > 0) {
+            long lateMinutes = java.time.Duration.between(shouldCheckIn, actualCheckIn).toMinutes();
+            if (lateMinutes > lateThreshold) {
+                return "缺勤"; // 严重迟到视为缺勤
+            }
+        }
+
+        // B. 如果还没有签退
         if (actualCheckOut == null) {
             return isLate ? "迟到" : "正常";
         }
 
-        // 有签退时间，综合判定
+        // C. 判定签退状态
         boolean isEarlyLeave = actualCheckOut.isBefore(shouldCheckOut);
+        if (isEarlyLeave && earlyThreshold > 0) {
+            long earlyMinutes = java.time.Duration.between(actualCheckOut, shouldCheckOut).toMinutes();
+            if (earlyMinutes > earlyThreshold) {
+                return "缺勤"; // 严重早退视为缺勤
+            }
+        }
 
+        // D. 综合判定
         if (isLate && isEarlyLeave) {
             return "迟到且早退";
         } else if (isLate) {

@@ -105,6 +105,7 @@ public class SalaryService {
         BigDecimal lateDeduction = BigDecimal.ZERO;
         BigDecimal earlyDeduction = BigDecimal.ZERO;
         BigDecimal absentDeduction = BigDecimal.ZERO;
+        BigDecimal absenceDeduction = BigDecimal.ZERO;
         for (Attendance a : attendances) {
             String status = a.getAttendanceStatus();
             if (status == null)
@@ -114,12 +115,16 @@ public class SalaryService {
                 lateDeduction = lateDeduction.add(config.getLatePenalty());
             if (status.contains("早退"))
                 earlyDeduction = earlyDeduction.add(config.getEarlyPenalty());
-            if (status.contains("缺勤"))
+            if (status.contains("旷工"))
                 absentDeduction = absentDeduction.add(config.getAbsentPenalty());
+            if (status.contains("缺勤"))
+                absenceDeduction = absenceDeduction
+                        .add(config.getAbsencePenalty() != null ? config.getAbsencePenalty() : BigDecimal.ZERO);
         }
         slip.setLateDeduction(lateDeduction);
         slip.setEarlyLeaveDeduction(earlyDeduction);
         slip.setAbsentDeduction(absentDeduction);
+        slip.setAbsenceDeduction(absenceDeduction);
 
         // 请假扣款
         BigDecimal leaveDeduction = BigDecimal.ZERO;

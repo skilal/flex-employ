@@ -35,13 +35,15 @@ public interface PaySlipMapper {
         @Insert("INSERT INTO pay_slip (on_duty_worker_id, cycle_start, cycle_end, deadline_date, " +
                         "actual_payment_date, payment_method, base_pay, bonus_pay, overtime_pay, allowance, " +
                         "pension_deduction, medical_deduction, unemployment_deduction, injury_deduction, " +
-                        "pf_deduction, tax_amount, late_deduction, early_leave_deduction, absent_deduction, " +
+                        "pf_deduction, tax_amount, late_deduction, early_leave_deduction, absent_deduction, absence_deduction, "
+                        +
                         "leave_deduction, gross_pay, total_deduction, net_pay, confirm_status) " +
                         "VALUES (#{onDutyWorkerId}, #{cycleStart}, #{cycleEnd}, #{deadlineDate}, " +
                         "#{actualPaymentDate}, #{paymentMethod}, #{basePay}, #{bonusPay}, #{overtimePay}, " +
                         "#{allowance}, #{pensionDeduction}, #{medicalDeduction}, #{unemploymentDeduction}, " +
                         "#{injuryDeduction}, #{pfDeduction}, #{taxAmount}, #{lateDeduction}, " +
-                        "#{earlyLeaveDeduction}, #{absentDeduction}, #{leaveDeduction}, #{grossPay}, " +
+                        "#{earlyLeaveDeduction}, #{absentDeduction}, #{absenceDeduction}, #{leaveDeduction}, #{grossPay}, "
+                        +
                         "#{totalDeduction}, #{netPay}, #{confirmStatus})")
         @Options(useGeneratedKeys = true, keyProperty = "payRecordId")
         int insert(PaySlip paySlip);
@@ -55,6 +57,7 @@ public interface PaySlipMapper {
                         "injury_deduction = #{injuryDeduction}, pf_deduction = #{pfDeduction}, " +
                         "tax_amount = #{taxAmount}, late_deduction = #{lateDeduction}, " +
                         "early_leave_deduction = #{earlyLeaveDeduction}, absent_deduction = #{absentDeduction}, " +
+                        "absence_deduction = #{absenceDeduction}, " +
                         "leave_deduction = #{leaveDeduction}, gross_pay = #{grossPay}, " +
                         "total_deduction = #{totalDeduction}, net_pay = #{netPay}, " +
                         "confirm_status = #{confirmStatus} WHERE pay_record_id = #{payRecordId}")

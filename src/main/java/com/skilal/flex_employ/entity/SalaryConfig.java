@@ -15,6 +15,7 @@ public class SalaryConfig {
     private BigDecimal latePenalty; // 迟到扣款
     private BigDecimal earlyPenalty; // 早退扣款
     private BigDecimal absentPenalty; // 旷工扣款
+    private BigDecimal absencePenalty; // 缺勤扣款
     private BigDecimal sickLeaveRate; // 病假扣款比例
     private BigDecimal personalLeaveRate; // 事假扣款比例
 
@@ -48,6 +49,10 @@ public class SalaryConfig {
     private Integer overtimeCalcMode; // 1: 起算阈值, 2: 取整计算, 3: 分钟折算
     private Integer overtimeThresholdMin; // 加班起算阈值(分钟)
     private BigDecimal overtimeRoundingUnit; // 取整单位(如1.0或0.5)
+
+    // 新增字段：考勤判定阈值
+    private Integer lateThresholdMin; // 迟到超过该分钟数视为缺勤
+    private Integer earlyLeaveThresholdMin; // 早退超过该分钟数视为缺勤
 
     private LocalDateTime createdAt;
 }

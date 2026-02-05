@@ -35,7 +35,10 @@
             <el-option label="早退" value="早退" />
             <el-option label="迟到且早退" value="迟到且早退" />
             <el-option label="缺勤" value="缺勤" />
+            <el-option label="旷工" value="旷工" />
             <el-option label="请假" value="请假" />
+            <el-option label="请假" value="请假" />
+            <el-option label="假日" value="假日" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -189,12 +192,22 @@
           />
         </el-form-item>
 
+        <el-form-item label="旷工判定">
+          <el-switch
+            v-model="isManualAbsent"
+            active-text="强制标记为旷工"
+            inactive-text="系统自动判定"
+            @change="handleManualAbsentChange"
+          />
+        </el-form-item>
+
         <el-form-item label="实际签到时间">
           <el-time-picker
             v-model="form.actualCheckIn"
             format="HH:mm:ss"
             value-format="HH:mm:ss"
             placeholder="选择时间"
+            :disabled="isManualAbsent"
             style="width: 100%"
           />
         </el-form-item>
@@ -205,6 +218,7 @@
             format="HH:mm:ss"
             value-format="HH:mm:ss"
             placeholder="选择时间"
+            :disabled="isManualAbsent"
             style="width: 100%"
           />
         </el-form-item>
@@ -257,6 +271,17 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref(null)
 const submitLoading = ref(false)
+const isManualAbsent = ref(false)
+
+const handleManualAbsentChange = (val) => {
+  if (val) {
+    form.actualCheckIn = null
+    form.actualCheckOut = null
+    form.attendanceStatus = '旷工'
+  } else {
+    form.attendanceStatus = '正常' // 重置为正常，提交时后台会重新计算
+  }
+}
 
 const form = reactive({
   attendanceId: null,
@@ -357,7 +382,9 @@ const getStatusType = (status) => {
     '早退': 'warning',
     '迟到且早退': 'danger',
     '缺勤': 'danger',
-    '请假': 'info'
+    '旷工': 'danger',
+    '请假': 'info',
+    '假日': 'info'
   }
   return map[status] || 'info'
 }
@@ -381,6 +408,7 @@ const handleAdd = () => {
     attendanceStatus: '正常',
     workingDays: ''
   })
+  isManualAbsent.value = false
   dialogVisible.value = true
 }
 
@@ -388,6 +416,7 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   dialogTitle.value = '编辑考勤记录'
   Object.assign(form, row)
+  isManualAbsent.value = row.attendanceStatus === '旷工'
   dialogVisible.value = true
 }
 

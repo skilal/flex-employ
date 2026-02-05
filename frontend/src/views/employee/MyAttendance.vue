@@ -22,37 +22,51 @@
 
     <!-- 考勤统计 -->
     <el-row :gutter="20" style="margin-bottom: 20px;">
-      <el-col :span="6">
+      <el-col :span="4">
         <el-card>
-          <el-statistic title="本月出勤天数" :value="statistics.normalDays">
-            <template #suffix>天</template>
-          </el-statistic>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card>
-          <el-statistic title="本月缺勤天数" :value="statistics.absentDays">
+          <el-statistic title="本月出勤" :value="statistics.normalDays">
             <template #suffix>天</template>
           </el-statistic>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card>
-          <el-statistic title="本月迟到次数" :value="statistics.lateTimes">
+          <el-statistic title="本月缺勤" :value="statistics.absentDays">
+            <template #suffix>天</template>
+          </el-statistic>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card>
+          <el-statistic title="本月假日" :value="statistics.holidayDays">
+            <template #suffix>天</template>
+          </el-statistic>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card>
+          <el-statistic title="本月旷工" :value="statistics.absenteeismDays" value-style="color: #F56C6C">
+            <template #suffix>天</template>
+          </el-statistic>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card>
+          <el-statistic title="本月迟到" :value="statistics.lateTimes">
             <template #suffix>次</template>
           </el-statistic>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card>
-          <el-statistic title="本月早退次数" :value="statistics.earlyTimes">
+          <el-statistic title="本月早退" :value="statistics.earlyTimes">
             <template #suffix>次</template>
           </el-statistic>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card>
-          <el-statistic title="本月请假天数" :value="statistics.leaveDays">
+          <el-statistic title="本月请假" :value="statistics.leaveDays">
             <template #suffix>天</template>
           </el-statistic>
         </el-card>
@@ -138,7 +152,9 @@ const statistics = reactive({
   absentDays: 0,
   lateTimes: 0,
   earlyTimes: 0,
-  leaveDays: 0
+  leaveDays: 0,
+  holidayDays: 0,
+  absenteeismDays: 0
 })
 
 const loadData = async () => {
@@ -187,6 +203,8 @@ const calculateStatistics = () => {
     item.attendanceStatus === '早退' || item.attendanceStatus === '迟到且早退'
   ).length
   statistics.leaveDays = tableData.value.filter(item => item.attendanceStatus === '请假').length
+  statistics.holidayDays = tableData.value.filter(item => item.attendanceStatus === '假日').length
+  statistics.absenteeismDays = tableData.value.filter(item => item.attendanceStatus === '旷工').length
 }
 
 const formatWorkingDays = (daysStr) => {
@@ -205,7 +223,9 @@ const getStatusType = (status) => {
     '早退': 'warning',
     '迟到且早退': 'danger',
     '缺勤': 'danger',
-    '请假': 'info'
+    '旷工': 'danger',
+    '请假': 'info',
+    '假日': 'info'
   }
   return map[status] || 'info'
 }

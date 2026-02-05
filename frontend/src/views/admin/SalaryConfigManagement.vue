@@ -38,7 +38,7 @@
         <el-table-column label="扣款/费率预览" min-width="250">
           <template #default="{ row }">
             <div style="font-size: 12px">
-              <b>扣款:</b> 迟到 ¥{{ row.latePenalty }} | 早退 ¥{{ row.earlyPenalty }} | 旷工 ¥{{ row.absentPenalty }}
+              <b>扣款:</b> 迟到 ¥{{ row.latePenalty }} | 早退 ¥{{ row.earlyPenalty }} | 旷工 ¥{{ row.absentPenalty }} | 缺勤 ¥{{ row.absencePenalty || 0 }}
             </div>
             <div style="font-size: 12px; color: #67C23A">
               <b>绩效:</b> ¥{{ row.performanceBonus }} | 提成: {{ row.commission }}% | 奖金: ¥{{ row.bonus }}
@@ -122,6 +122,13 @@
           <el-col :span="12">
             <el-form-item label="旷工扣款" prop="absentPenalty">
               <el-input-number v-model="form.absentPenalty" :min="0" controls-position="right" style="width: 100%" />
+              <div class="tip">全天未签到定为旷工</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="缺勤扣款" prop="absencePenalty">
+              <el-input-number v-model="form.absencePenalty" :min="0" controls-position="right" style="width: 100%" />
+              <div class="tip">迟到/早退超阈值定为缺勤</div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -266,6 +273,22 @@
           * {{ form.overtimeCalcMode === 1 ? '起算阈值：加班不满该分钟数不计薪' : (form.overtimeCalcMode === 2 ? '取整计算：按照设定的单位进行四舍五入取整' : '分钟折算：严格按照实际分钟数进行比例换算') }}
         </div>
 
+        <el-divider content-position="left">缺勤判定阈值</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="迟到视为缺勤" prop="lateThresholdMin">
+              <el-input-number v-model="form.lateThresholdMin" :min="0" controls-position="right" style="width: 100%" />
+              <div class="tip">超过该分钟数未签到即视为缺勤 (0 表示禁用)</div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="早退视为缺勤" prop="earlyLeaveThresholdMin">
+              <el-input-number v-model="form.earlyLeaveThresholdMin" :min="0" controls-position="right" style="width: 100%" />
+              <div class="tip">早退超过该分钟数即视为缺勤 (0 表示禁用)</div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-divider content-position="left">计薪基数预留 (暂未启用逻辑)</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -311,6 +334,7 @@ const form = reactive({
   latePenalty: 0,
   earlyPenalty: 0,
   absentPenalty: 0,
+  absencePenalty: 0,
   sickLeaveRate: 0.4,
   personalLeaveRate: 1.0,
   performanceBonus: 0,
@@ -333,7 +357,9 @@ const form = reactive({
   overtimeHolidayMultiplier: 3.0,
   overtimeCalcMode: 3,
   overtimeThresholdMin: 30,
-  overtimeRoundingUnit: 1.0
+  overtimeRoundingUnit: 1.0,
+  lateThresholdMin: 0,
+  earlyLeaveThresholdMin: 0
 })
 
 const rules = {
@@ -368,6 +394,7 @@ const handleAdd = () => {
     latePenalty: 0,
     earlyPenalty: 0,
     absentPenalty: 0,
+    absencePenalty: 0,
     sickLeaveRate: 0.4,
     personalLeaveRate: 1.0,
     performanceBonus: 0,
@@ -390,7 +417,9 @@ const handleAdd = () => {
     overtimeHolidayMultiplier: 3.0,
     overtimeCalcMode: 3,
     overtimeThresholdMin: 30,
-    overtimeRoundingUnit: 1.0
+    overtimeRoundingUnit: 1.0,
+    lateThresholdMin: 30,
+    earlyLeaveThresholdMin: 30
   })
   dialogVisible.value = true
 }

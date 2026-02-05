@@ -266,6 +266,11 @@
               <el-input-number v-model="form.leaveDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="缺勤扣款">
+              <el-input-number v-model="form.absenceDeduction" :min="0" :precision="2" style="width: 100%" @change="calculateTotal" />
+            </el-form-item>
+          </el-col>
         </el-row>
 
         <el-divider content-position="left">汇总</el-divider>
@@ -341,6 +346,7 @@ const form = reactive({
   lateDeduction: 0,
   earlyLeaveDeduction: 0,
   absentDeduction: 0,
+  absenceDeduction: 0,
   leaveDeduction: 0,
   grossPay: 0,
   totalDeduction: 0,
@@ -401,7 +407,7 @@ const calculateTotal = () => {
                          (form.unemploymentDeduction || 0) + (form.injuryDeduction || 0) +
                          (form.pfDeduction || 0) + (form.taxAmount || 0) +
                          (form.lateDeduction || 0) + (form.earlyLeaveDeduction || 0) +
-                         (form.absentDeduction || 0) + (form.leaveDeduction || 0)
+                         (form.absentDeduction || 0) + (form.absenceDeduction || 0) + (form.leaveDeduction || 0)
   form.totalDeduction = parseFloat(totalDeduction.toFixed(2))
   
   // 计算实发工资 = 应发工资 - 扣除合计
@@ -461,6 +467,7 @@ const handleAdd = () => {
     lateDeduction: 0,
     earlyLeaveDeduction: 0,
     absentDeduction: 0,
+    absenceDeduction: 0,
     leaveDeduction: 0,
     grossPay: 0,
     totalDeduction: 0,
