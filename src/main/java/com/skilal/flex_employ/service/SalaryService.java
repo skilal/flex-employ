@@ -137,41 +137,63 @@ public class SalaryService {
         slip.setBasePay(basePay);
 
         // 考勤扣款
+        // 4. 考勤扣款核算
         BigDecimal lateDeduction = BigDecimal.ZERO;
         BigDecimal earlyDeduction = BigDecimal.ZERO;
         BigDecimal absentDeduction = BigDecimal.ZERO;
         BigDecimal absenceDeduction = BigDecimal.ZERO;
+
         for (Attendance a : attendances) {
             String status = a.getAttendanceStatus();
             if (status == null)
                 continue;
 
-            if (status.contains("迟到"))
-                lateDeduction = lateDeduction.add(config.getLatePenalty());
-            if (status.contains("早退"))
-                earlyDeduction = earlyDeduction.add(config.getEarlyPenalty());
-            if (status.contains("旷工"))
-                absentDeduction = absentDeduction.add(config.getAbsentPenalty());
-            if (status.contains("缺勤"))
+            // 迟到计数 (包含“迟到且早退”)
+            if (status.contains("迟到")) {
+                lateDeduction = lateDeduction
+                        .add(config.getLatePenalty() != null ? config.getLatePenalty() : BigDecimal.ZERO);
+            }
+            // 早退计数 (包含“迟到且早退”)
+            if (status.contains("早退")) {
+                earlyDeduction = earlyDeduction
+                        .add(config.getEarlyPenalty() != null ? config.getEarlyPenalty() : BigDecimal.ZERO);
+            }
+            // 旷工计次
+            if (status.contains("旷工")) {
+                absentDeduction = absentDeduction
+                        .add(config.getAbsentPenalty() != null ? config.getAbsentPenalty() : BigDecimal.ZERO);
+            }
+            // 缺勤计次
+            if (status.contains("缺勤")) {
                 absenceDeduction = absenceDeduction
                         .add(config.getAbsencePenalty() != null ? config.getAbsencePenalty() : BigDecimal.ZERO);
+            }
         }
         slip.setLateDeduction(lateDeduction);
         slip.setEarlyLeaveDeduction(earlyDeduction);
         slip.setAbsentDeduction(absentDeduction);
         slip.setAbsenceDeduction(absenceDeduction);
 
-        // 请假扣款
-        BigDecimal leaveDeduction = BigDecimal.ZERO;
+        // 请假扣款 (病假/事假)
+        BigDecimal leaveDeductionTotal = BigDecimal.ZERO;
+        // 确定日薪基数：按天计费即为baseRate；按小时计费则为 每日标准工时 * baseRate
+        BigDecimal dailySalaryBase = config.getBaseRate();
+        if (config.getBillingMethod() != null && config.getBillingMethod() == 1) {
+            BigDecimal dailyHours = calculateStandardDailyHours(position);
+            dailySalaryBase = dailySalaryBase.multiply(dailyHours);
+        }
+
         for (LeaveRequest l : leaves) {
-            BigDecimal dailyRaw = config.getBaseRate(); // 假设按天
             if ("病假".equals(l.getLeaveType())) {
-                leaveDeduction = leaveDeduction.add(dailyRaw.multiply(config.getSickLeaveRate()));
-            } else {
-                leaveDeduction = leaveDeduction.add(dailyRaw.multiply(config.getPersonalLeaveRate()));
+                BigDecimal rate = config.getSickLeaveRate() != null ? config.getSickLeaveRate() : BigDecimal.ZERO;
+                leaveDeductionTotal = leaveDeductionTotal.add(dailySalaryBase.multiply(rate));
+            } else if ("事假".equals(l.getLeaveType())) {
+                BigDecimal rate = config.getPersonalLeaveRate() != null ? config.getPersonalLeaveRate()
+                        : BigDecimal.ZERO;
+                leaveDeductionTotal = leaveDeductionTotal.add(dailySalaryBase.multiply(rate));
             }
         }
-        slip.setLeaveDeduction(leaveDeduction);
+        slip.setLeaveDeduction(leaveDeductionTotal.setScale(2, RoundingMode.HALF_UP));
 
         // 5. 加班费计算
         BigDecimal totalOvertimePay = BigDecimal.ZERO;
