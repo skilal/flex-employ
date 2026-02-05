@@ -12,6 +12,11 @@ public interface PositionMapper {
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
                         "p.salary_config_id AS salaryConfigId, sc.config_name AS salaryConfigName, " +
+                        "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
+                        "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
+                        +
+                        "sc.overtime_weekend_multiplier AS overtimeWeekendMultiplier, sc.overtime_holiday_multiplier AS overtimeHolidayMultiplier, "
+                        +
                         "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
                         +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
@@ -35,6 +40,11 @@ public interface PositionMapper {
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
                         "p.salary_config_id AS salaryConfigId, sc.config_name AS salaryConfigName, " +
+                        "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
+                        "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
+                        +
+                        "sc.overtime_weekend_multiplier AS overtimeWeekendMultiplier, sc.overtime_holiday_multiplier AS overtimeHolidayMultiplier, "
+                        +
                         "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
                         +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
@@ -45,8 +55,16 @@ public interface PositionMapper {
         @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "p.salary_config_id AS salaryConfigId, " +
-                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions FROM position p WHERE position_id = #{positionId}")
+                        "p.salary_config_id AS salaryConfigId, sc.config_name AS salaryConfigName, " +
+                        "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
+                        "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
+                        +
+                        "sc.overtime_weekend_multiplier AS overtimeWeekendMultiplier, sc.overtime_holiday_multiplier AS overtimeHolidayMultiplier, "
+                        +
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions FROM position p "
+                        +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
+                        "WHERE position_id = #{positionId}")
         Position findById(Long positionId);
 
         @Insert("INSERT INTO position (position_name, work_location, region_code, duty_desc, work_start_time, " +

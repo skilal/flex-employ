@@ -44,7 +44,10 @@
               <b>绩效:</b> ¥{{ row.performanceBonus }} | 提成: {{ row.commission }}% | 奖金: ¥{{ row.bonus }}
             </div>
             <div style="font-size: 11px; color: #909399">
-              <b>费率:</b> 养老 {{ (row.pensionRate*100).toFixed(2) }}% | 医疗 {{ (row.medicalRate*100).toFixed(2) }}% | 公积金 {{ (row.housingFundRate*100).toFixed(2) }}%
+              <b>个人费率:</b> 养老 {{ (row.pensionRate*100).toFixed(2) }}% | 医疗 {{ (row.medicalRate*100).toFixed(2) }}% | 公积金 {{ (row.housingFundRate*100).toFixed(2) }}%
+            </div>
+            <div style="font-size: 11px; color: #409EFF">
+              <b>企业费率:</b> 养老 {{ ((row.pensionRateEnt || 0)*100).toFixed(2) }}% | 医疗 {{ ((row.medicalRateEnt || 0)*100).toFixed(2) }}% | 公积金 {{ ((row.housingFundRateEnt || 0)*100).toFixed(2) }}%
             </div>
             <div style="font-size: 11px; color: #E6A23C">
               <b>加班:</b> {{ row.overtimeWeekdayMultiplier }}倍 / {{ row.overtimeWeekendMultiplier }}倍 / {{ row.overtimeHolidayMultiplier }}倍
@@ -159,33 +162,62 @@
 
         <el-divider content-position="left">五险一金费率(个人%)</el-divider>
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="养老保险" prop="pensionRate">
               <el-input-number v-model="form.pensionRate" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="医疗保险" prop="medicalRate">
               <el-input-number v-model="form.medicalRate" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="失业保险" prop="unemploymentRate">
               <el-input-number v-model="form.unemploymentRate" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">
             <el-form-item label="工伤保险" prop="injuryRate">
               <el-input-number v-model="form.injuryRate" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="公积金率" prop="housingFundRate">
               <el-input-number v-model="form.housingFundRate" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">五险一金费率(企业%)</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="养老保险" prop="pensionRateEnt">
+              <el-input-number v-model="form.pensionRateEnt" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="医疗保险" prop="medicalRateEnt">
+              <el-input-number v-model="form.medicalRateEnt" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="失业保险" prop="unemploymentRateEnt">
+              <el-input-number v-model="form.unemploymentRateEnt" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="工伤保险" prop="injuryRateEnt">
+              <el-input-number v-model="form.injuryRateEnt" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="公积金率" prop="housingFundRateEnt">
+              <el-input-number v-model="form.housingFundRateEnt" :min="0" :max="100" :precision="2" :step="0.01" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -289,6 +321,11 @@ const form = reactive({
   unemploymentRate: 0,
   injuryRate: 0,
   housingFundRate: 0,
+  pensionRateEnt: 0,
+  medicalRateEnt: 0,
+  unemploymentRateEnt: 0,
+  injuryRateEnt: 0,
+  housingFundRateEnt: 0,
   socialSecurityBaseUpper: 0,
   socialSecurityBaseLower: 0,
   overtimeWeekdayMultiplier: 1.5,
@@ -341,6 +378,11 @@ const handleAdd = () => {
     unemploymentRate: 0.5,
     injuryRate: 0,
     housingFundRate: 7,
+    pensionRateEnt: 16,
+    medicalRateEnt: 9,
+    unemploymentRateEnt: 0.5,
+    injuryRateEnt: 0.4,
+    housingFundRateEnt: 7,
     socialSecurityBaseUpper: 0,
     socialSecurityBaseLower: 0,
     overtimeWeekdayMultiplier: 1.5,
@@ -362,6 +404,11 @@ const handleEdit = (row) => {
   rowFixed.unemploymentRate = (row.unemploymentRate || 0) * 100
   rowFixed.injuryRate = (row.injuryRate || 0) * 100
   rowFixed.housingFundRate = (row.housingFundRate || 0) * 100
+  rowFixed.pensionRateEnt = (row.pensionRateEnt || 0) * 100
+  rowFixed.medicalRateEnt = (row.medicalRateEnt || 0) * 100
+  rowFixed.unemploymentRateEnt = (row.unemploymentRateEnt || 0) * 100
+  rowFixed.injuryRateEnt = (row.injuryRateEnt || 0) * 100
+  rowFixed.housingFundRateEnt = (row.housingFundRateEnt || 0) * 100
   rowFixed.commission = (row.commission || 0) * 100
   
   Object.assign(form, rowFixed)
@@ -395,6 +442,11 @@ const handleSubmit = async () => {
         submitData.unemploymentRate = form.unemploymentRate / 100
         submitData.injuryRate = form.injuryRate / 100
         submitData.housingFundRate = form.housingFundRate / 100
+        submitData.pensionRateEnt = form.pensionRateEnt / 100
+        submitData.medicalRateEnt = form.medicalRateEnt / 100
+        submitData.unemploymentRateEnt = form.unemploymentRateEnt / 100
+        submitData.injuryRateEnt = form.injuryRateEnt / 100
+        submitData.housingFundRateEnt = form.housingFundRateEnt / 100
         submitData.commission = form.commission / 100
 
         console.log('提交薪资配置:', submitData)

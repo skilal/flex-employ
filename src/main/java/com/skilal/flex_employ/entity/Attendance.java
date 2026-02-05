@@ -23,4 +23,5 @@ public class Attendance {
     private java.time.LocalDate workEndTime;
     private LocalTime checkInTime;
     private LocalTime checkOutTime;
+    private String workingDays;
 }

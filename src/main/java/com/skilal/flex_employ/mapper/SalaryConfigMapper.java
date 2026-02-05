@@ -17,12 +17,16 @@ public interface SalaryConfigMapper {
                         "late_penalty, early_penalty, absent_penalty, sick_leave_rate, personal_leave_rate, " +
                         "performance_bonus, commission, bonus, pension_rate, medical_rate, unemployment_rate, injury_rate, housing_fund_rate, "
                         +
+                        "pension_rate_ent, medical_rate_ent, unemployment_rate_ent, injury_rate_ent, housing_fund_rate_ent, "
+                        +
                         "social_security_base_upper, social_security_base_lower, " +
                         "overtime_weekday_multiplier, overtime_weekend_multiplier, overtime_holiday_multiplier, " +
                         "overtime_calc_mode, overtime_threshold_min, overtime_rounding_unit) " +
                         "VALUES (#{configName}, #{payCycle}, #{billingMethod}, #{baseRate}, #{hasOvertimePay}, " +
                         "#{latePenalty}, #{earlyPenalty}, #{absentPenalty}, #{sickLeaveRate}, #{personalLeaveRate}, " +
                         "#{performanceBonus}, #{commission}, #{bonus}, #{pensionRate}, #{medicalRate}, #{unemploymentRate}, #{injuryRate}, #{housingFundRate}, "
+                        +
+                        "#{pensionRateEnt}, #{medicalRateEnt}, #{unemploymentRateEnt}, #{injuryRateEnt}, #{housingFundRateEnt}, "
                         +
                         "#{socialSecurityBaseUpper}, #{socialSecurityBaseLower}, " +
                         "#{overtimeWeekdayMultiplier}, #{overtimeWeekendMultiplier}, #{overtimeHolidayMultiplier}, " +
@@ -40,6 +44,9 @@ public interface SalaryConfigMapper {
                         "pension_rate = #{pensionRate}, medical_rate = #{medicalRate}, unemployment_rate = #{unemploymentRate}, "
                         +
                         "injury_rate = #{injuryRate}, housing_fund_rate = #{housingFundRate}, " +
+                        "pension_rate_ent = #{pensionRateEnt}, medical_rate_ent = #{medicalRateEnt}, unemployment_rate_ent = #{unemploymentRateEnt}, "
+                        +
+                        "injury_rate_ent = #{injuryRateEnt}, housing_fund_rate_ent = #{housingFundRateEnt}, " +
                         "social_security_base_upper = #{socialSecurityBaseUpper}, social_security_base_lower = #{socialSecurityBaseLower}, "
                         +
                         "overtime_weekday_multiplier = #{overtimeWeekdayMultiplier}, overtime_weekend_multiplier = #{overtimeWeekendMultiplier}, "

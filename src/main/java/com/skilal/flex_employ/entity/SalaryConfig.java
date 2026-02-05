@@ -23,12 +23,19 @@ public class SalaryConfig {
     private BigDecimal commission;
     private BigDecimal bonus;
 
-    // 新增字段：五险一金费率
+    // 新增字段：五险一金费率（个人部分）
     private BigDecimal pensionRate;
     private BigDecimal medicalRate;
     private BigDecimal unemploymentRate;
     private BigDecimal injuryRate;
     private BigDecimal housingFundRate;
+
+    // 新增字段：五险一金费率（企业部分）
+    private BigDecimal pensionRateEnt;
+    private BigDecimal medicalRateEnt;
+    private BigDecimal unemploymentRateEnt;
+    private BigDecimal injuryRateEnt;
+    private BigDecimal housingFundRateEnt;
 
     // 新增字段：社保基数上下限
     private BigDecimal socialSecurityBaseUpper;

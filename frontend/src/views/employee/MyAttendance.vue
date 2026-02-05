@@ -65,27 +65,51 @@
         <h3>考勤记录</h3>
       </template>
 
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="attendanceId" label="考勤ID" width="100" />
-        <el-table-column prop="attendanceDate" label="考勤日期" width="120" />
-        <el-table-column prop="actualCheckIn" label="实际签到时间" width="150" />
-        <el-table-column prop="actualCheckOut" label="实际签退时间" width="150" />
-        <el-table-column prop="attendanceStatus" label="考勤状态" width="100">
+      <el-table :data="pagedData" border stripe v-loading="loading">
+        <el-table-column prop="attendanceId" label="ID" width="80" />
+        <el-table-column prop="attendanceDate" label="考勤日期" width="110" />
+        <el-table-column label="所属岗位" width="120" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-tag v-if="row.attendanceStatus === '正常'" type="success">正常</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '迟到'" type="warning">迟到</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '早退'" type="warning">早退</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '迟到且早退'" type="warning">迟到且早退</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '请假'" type="info">请假</el-tag>
-            <el-tag v-else type="danger">缺勤</el-tag>
+            <span class="pro-pos-name">{{ row.positionName || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="工作时长" width="120">
+        <el-table-column label="排班规则" min-width="170">
+          <template #default="{ row }">
+            <div class="pro-rule-text">
+              <el-icon><Calendar /></el-icon> {{ formatWorkingDays(row.workingDays) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="标准时段" width="130">
+          <template #default="{ row }">
+            <div class="pro-time-text">
+              <el-icon><Timer /></el-icon> {{ formatTime(row.checkInTime) }}-{{ formatTime(row.checkOutTime) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="actualCheckIn" label="签到时间" width="100" />
+        <el-table-column prop="actualCheckOut" label="签退时间" width="100" />
+        <el-table-column prop="attendanceStatus" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.attendanceStatus)">{{ row.attendanceStatus }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="计算工时" width="100">
           <template #default="{ row }">
             {{ calculateWorkHours(row) }}
           </template>
         </el-table-column>
       </el-table>
+
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          layout="total, prev, pager, next, jumper"
+          @current-change="handlePageChange"
+        />
+      </div>
 
       <el-empty v-if="tableData.length === 0 && !loading" description="暂无考勤记录" />
     </el-card>
@@ -94,6 +118,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { Calendar, Timer } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getMyAttendances } from '../../api/attendance'
 
@@ -102,7 +127,11 @@ const searchForm = reactive({
 })
 
 const tableData = ref([])
+const pagedData = ref([])
 const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const statistics = reactive({
   normalDays: 0,
@@ -122,8 +151,11 @@ const loadData = async () => {
     }
     
     const res = await getMyAttendances(params)
-    tableData.value = res.data.records || res.data || []
+    const allData = res.data.records || res.data || []
+    tableData.value = allData
+    total.value = allData.length
     
+    updatePagedData()
     // 计算统计数据
     calculateStatistics()
   } catch (error) {
@@ -132,6 +164,17 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const updatePagedData = () => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  pagedData.value = tableData.value.slice(start, end)
+}
+
+const handlePageChange = (val) => {
+  currentPage.value = val
+  updatePagedData()
 }
 
 const calculateStatistics = () => {
@@ -144,6 +187,32 @@ const calculateStatistics = () => {
     item.attendanceStatus === '早退' || item.attendanceStatus === '迟到且早退'
   ).length
   statistics.leaveDays = tableData.value.filter(item => item.attendanceStatus === '请假').length
+}
+
+const formatWorkingDays = (daysStr) => {
+  if (!daysStr) return '灵活安排'
+  const dayMap = { '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日' }
+  const days = daysStr.split(',').sort().map(d => dayMap[d])
+  if (daysStr === '1,2,3,4,5') return '周一至周五'
+  if (daysStr === '1,2,3,4,5,6,7') return '全周'
+  return days.join(', ')
+}
+
+const getStatusType = (status) => {
+  const map = {
+    '正常': 'success',
+    '迟到': 'warning',
+    '早退': 'warning',
+    '迟到且早退': 'danger',
+    '缺勤': 'danger',
+    '请假': 'info'
+  }
+  return map[status] || 'info'
+}
+
+const formatTime = (time) => {
+  if (!time) return '--:--'
+  return time.length > 5 ? time.substring(0, 5) : time
 }
 
 const calculateWorkHours = (row) => {
@@ -179,5 +248,23 @@ onMounted(() => {
 
 .search-card {
   margin-bottom: 20px;
+}
+.pro-pos-name {
+  font-weight: 600;
+  color: #34495e;
+}
+.pro-rule-text {
+  color: #e67e22;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pro-time-text {
+  color: #7f8c8d;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

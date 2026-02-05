@@ -11,11 +11,12 @@ public interface AttendanceMapper {
         @Select("<script>" +
                         "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
-                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime " +
+                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
+                        "IFNULL(p.working_days, '(未设定)') AS workingDays " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
-                        "LEFT JOIN position p ON a.position_id = p.position_id " +
+                        "LEFT JOIN position p ON w.position_id = p.position_id " +
                         "WHERE 1=1 " +
                         "<if test='attendanceDate != null'> AND a.attendance_date = #{attendanceDate} </if>" +
                         "<if test='attendanceStatus != null and attendanceStatus != \"\"'> AND a.attendance_status = #{attendanceStatus} </if>"
@@ -34,11 +35,12 @@ public interface AttendanceMapper {
         @Select("<script>" +
                         "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
-                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime " +
+                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
+                        "IFNULL(p.working_days, '(未设定)') AS workingDays " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
-                        "LEFT JOIN position p ON a.position_id = p.position_id " +
+                        "LEFT JOIN position p ON w.position_id = p.position_id " +
                         "WHERE w.user_id = #{userId} " +
                         "<if test='startDate != null'> AND a.attendance_date &gt;= #{startDate} </if>" +
                         "<if test='endDate != null'> AND a.attendance_date &lt;= #{endDate} </if>" +

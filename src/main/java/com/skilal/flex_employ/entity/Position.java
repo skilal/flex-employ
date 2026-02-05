@@ -37,6 +37,15 @@ public class Position {
     private transient String companyName;
     private transient String salaryConfigName;
 
+    // 冗余显示字段：薪资配置详情
+    private transient String payCycle;
+    private transient Integer billingMethod;
+    private transient BigDecimal baseRate;
+    private transient Integer hasOvertimePay;
+    private transient BigDecimal overtimeWeekdayMultiplier;
+    private transient BigDecimal overtimeWeekendMultiplier;
+    private transient BigDecimal overtimeHolidayMultiplier;
+
     private LocalDateTime createdAt;
     private Long creatorId;
 }
