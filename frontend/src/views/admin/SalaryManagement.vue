@@ -29,6 +29,10 @@
         <el-icon><Plus /></el-icon>
         新增薪资记录
       </el-button>
+      <el-button type="success" :loading="generateLoading" @click="handleAutoGenerate">
+        <el-icon><VideoPlay /></el-icon>
+        执行自动核算
+      </el-button>
     </div>
 
     <!-- 表格 -->
@@ -306,7 +310,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPaySlips, createPaySlip, updatePaySlip, deleteSalary, getPredictDeadline, getSuggestedCycle } from '../../api/salary'
+import { getPaySlips, createPaySlip, updatePaySlip, deleteSalary, getPredictDeadline, getSuggestedCycle, generatePaySlips } from '../../api/salary'
 import { getWorkers } from '../../api/worker'
 
 const searchForm = reactive({
@@ -324,6 +328,7 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formRef = ref(null)
 const submitLoading = ref(false)
+const generateLoading = ref(false)
 
 const form = reactive({
   payRecordId: null,
@@ -522,6 +527,26 @@ const handleSubmit = async () => {
       }
     }
   })
+}
+
+const handleAutoGenerate = () => {
+  ElMessageBox.confirm('确定要手动执行全员薪资自动核算任务吗？这将根据考勤和请假记录尝试为所有在岗员工生成最新的薪资条。', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    generateLoading.value = true
+    try {
+      await generatePaySlips()
+      ElMessage.success('薪资自动结算任务已启动并完成')
+      loadData()
+    } catch (error) {
+      console.error('执行失败:', error)
+      ElMessage.error(error.response?.data?.message || '执行失败')
+    } finally {
+      generateLoading.value = false
+    }
+  }).catch(() => {})
 }
 
 const handleDialogClose = () => {

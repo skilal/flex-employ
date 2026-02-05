@@ -41,7 +41,7 @@ public class SalaryService {
     private AttendanceService attendanceService;
 
     // 每天凌晨2点自动生成薪资记录
-    @Scheduled(cron = "0 49 15 * * ?")
+    @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
     public void autoGeneratePaySlips() {
         // 查找所有在岗员工
@@ -82,24 +82,57 @@ public class SalaryService {
         if (paySlipMapper.existsByRange(worker.getOnDutyWorkerId(), cycleStart, cycleEnd))
             return;
 
-        // 3. 统计考勤与请假
+        // 3. 统计考勤与请假有效天数
         List<Attendance> attendances = attendanceMapper.findByWorkerAndRange(worker.getOnDutyWorkerId(), cycleStart,
                 cycleEnd);
         List<LeaveRequest> leaves = leaveRequestMapper.findApprovedByRange(worker.getUserId(), worker.getPositionId(),
                 cycleStart, cycleEnd);
+
+        // A. 统计合格考勤天数 (正常、迟到、早退、迟到且早退)
+        long qualifiedAttendanceDays = attendances.stream()
+                .filter(a -> a.getAttendanceStatus() != null &&
+                        (a.getAttendanceStatus().equals("正常") ||
+                                a.getAttendanceStatus().equals("迟到") ||
+                                a.getAttendanceStatus().equals("早退") ||
+                                a.getAttendanceStatus().equals("迟到且早退")))
+                .count();
+
+        // B. 统计合格请假天数 (包含在周期内的病假、带薪假)
+        long qualifiedLeaveDays = 0;
+        for (LeaveRequest l : leaves) {
+            String type = l.getLeaveType();
+            if (type != null && (type.equals("病假") || type.equals("带薪假（年假、婚假、丧假、产假、陪产假、育儿假）"))) {
+                // 计算该请假单在当前计薪周期间隔内的实际天数
+                LocalDate overlapStart = l.getStartDate().isBefore(cycleStart) ? cycleStart : l.getStartDate();
+                LocalDate overlapEnd = l.getEndDate().isAfter(cycleEnd) ? cycleEnd : l.getEndDate();
+                if (!overlapStart.isAfter(overlapEnd)) {
+                    qualifiedLeaveDays += ChronoUnit.DAYS.between(overlapStart, overlapEnd) + 1;
+                }
+            }
+        }
+
+        BigDecimal effectiveDays = new BigDecimal(qualifiedAttendanceDays + qualifiedLeaveDays);
 
         // 4. 计算各项金额
         PaySlip slip = new PaySlip();
         slip.setOnDutyWorkerId(worker.getOnDutyWorkerId());
         slip.setCycleStart(cycleStart);
         slip.setCycleEnd(cycleEnd);
-
-        // 最晚发放日判定
         slip.setDeadlineDate(calculateDeadlineDate(worker.getOnDutyWorkerId(), cycleEnd));
 
-        // 基础工资计算 (简化逻辑：按天/按小时 * 有效时间)
-        BigDecimal basePay = config.getBaseRate(); // 这里应根据考勤实际天数/小时数计算，目前取模版值
-        slip.setBasePay(basePay); // 暂定为全额
+        // 5. 基础工资计算
+        BigDecimal basePay = BigDecimal.ZERO;
+        BigDecimal unitPrice = config.getBaseRate() != null ? config.getBaseRate() : BigDecimal.ZERO;
+
+        if (config.getBillingMethod() != null && config.getBillingMethod() == 1) {
+            // 按小时计费
+            BigDecimal dailyHours = calculateStandardDailyHours(position);
+            basePay = effectiveDays.multiply(dailyHours).multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+        } else {
+            // 默认按天计费 (Method=2)
+            basePay = effectiveDays.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+        }
+        slip.setBasePay(basePay);
 
         // 考勤扣款
         BigDecimal lateDeduction = BigDecimal.ZERO;
@@ -249,5 +282,20 @@ public class SalaryService {
         }
 
         return result;
+    }
+
+    /**
+     * 计算岗位的每日标准工作小时数
+     */
+    private BigDecimal calculateStandardDailyHours(Position position) {
+        if (position.getCheckInTime() == null || position.getCheckOutTime() == null) {
+            return new BigDecimal("8"); // 兜底 8 小时
+        }
+        long minutes = java.time.Duration.between(position.getCheckInTime(), position.getCheckOutTime()).toMinutes();
+        if (minutes < 0) {
+            // 处理跨天情况 (如果后续有夜班需求)
+            minutes += 24 * 60;
+        }
+        return new BigDecimal(minutes).divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP);
     }
 }

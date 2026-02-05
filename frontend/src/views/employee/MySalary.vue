@@ -66,7 +66,8 @@
         <div class="money-grid deduction">
           <div class="item"><span>迟到扣款</span><strong>-¥{{ currentRow.lateDeduction }}</strong></div>
           <div class="item"><span>早退扣款</span><strong>-¥{{ currentRow.earlyLeaveDeduction }}</strong></div>
-          <div class="item"><span>缺勤扣款</span><strong>-¥{{ currentRow.absentDeduction }}</strong></div>
+          <div class="item"><span>旷工扣款</span><strong>-¥{{ currentRow.absentDeduction }}</strong></div>
+          <div class="item"><span>缺勤扣款</span><strong>-¥{{ currentRow.absenceDeduction || 0 }}</strong></div>
           <div class="item"><span>请假扣款</span><strong>-¥{{ currentRow.leaveDeduction }}</strong></div>
         </div>
 
