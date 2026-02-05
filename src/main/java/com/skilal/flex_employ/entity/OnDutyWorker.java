@@ -23,4 +23,5 @@ public class OnDutyWorker {
     private LocalTime checkOutTime;
     private Integer billingMethod; // 计费方式
     private java.math.BigDecimal overtimePay; // 加班费
+    private java.math.BigDecimal socialSecurityBase; // 社保缴费基数
 }

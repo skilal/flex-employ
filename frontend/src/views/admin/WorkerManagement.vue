@@ -73,6 +73,11 @@
         <el-table-column prop="checkInTime" label="应签到时间" width="120" />
         <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
         <el-table-column prop="hireDate" label="入职日期" width="120" />
+        <el-table-column label="社保基数" width="120">
+          <template #default="{ row }">
+            {{ row.socialSecurityBase ? `¥${row.socialSecurityBase}` : '未核定' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="leaveDate" label="离职日期" width="120" />
         <el-table-column label="员工状态" width="100">
           <template #default="{ row }">
@@ -165,6 +170,20 @@
           />
         </el-form-item>
 
+        <el-form-item label="社保基数" prop="socialSecurityBase">
+          <el-input-number 
+            v-model="form.socialSecurityBase" 
+            :precision="2" 
+            :step="100" 
+            :min="0"
+            placeholder="留空则首月自动核定" 
+            style="width: 100%" 
+          />
+          <div style="font-size: 12px; color: #909399; margin-top: 4px;">
+            💡 首次发薪时根据应发工资自动核准，也可手动预设。
+          </div>
+        </el-form-item>
+
         <el-form-item label="员工状态" prop="workerStatus">
           <el-select v-model="form.workerStatus" placeholder="自动判定" style="width: 100%" disabled>
             <el-option label="在岗" value="在岗" />
@@ -217,7 +236,8 @@ const form = reactive({
   positionId: null,
   hireDate: '',
   leaveDate: '',
-  workerStatus: '在岗'
+  workerStatus: '在岗',
+  socialSecurityBase: null
 })
 
 const rules = {
@@ -295,7 +315,8 @@ const handleAdd = () => {
     checkOutTime: '',
     hireDate: '',
     leaveDate: '',
-    workerStatus: '在岗'
+    workerStatus: '在岗',
+    socialSecurityBase: null
   })
   dialogVisible.value = true
 }

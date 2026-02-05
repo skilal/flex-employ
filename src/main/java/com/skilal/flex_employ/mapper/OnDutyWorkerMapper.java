@@ -12,7 +12,8 @@ public interface OnDutyWorkerMapper {
                         +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +
-                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
+                        "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, w.social_security_base AS socialSecurityBase, "
+                        +
                         "u.account AS userName, p.position_name AS positionName " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
@@ -33,25 +34,28 @@ public interface OnDutyWorkerMapper {
         @Select("SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
                         "p.position_name AS positionName, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, "
                         +
-                        "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime "
+                        "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, "
                         +
+                        "w.social_security_base AS socialSecurityBase " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
                         "WHERE w.user_id = #{userId}")
         List<OnDutyWorker> findByUserId(Long userId);
 
         @Select("SELECT w.*, w.user_id AS userId, w.position_id AS positionId, w.worker_status AS workerStatus, " +
-                        "w.hire_date AS hireDate, w.leave_date AS leaveDate " +
+                        "w.hire_date AS hireDate, w.leave_date AS leaveDate, w.social_security_base AS socialSecurityBase "
+                        +
                         "FROM on_duty_worker w WHERE on_duty_worker_id = #{onDutyWorkerId}")
         OnDutyWorker findById(Long onDutyWorkerId);
 
-        @Insert("INSERT INTO on_duty_worker (user_id, position_id, hire_date, leave_date, worker_status) " +
-                        "VALUES (#{userId}, #{positionId}, #{hireDate}, #{leaveDate}, #{workerStatus})")
+        @Insert("INSERT INTO on_duty_worker (user_id, position_id, hire_date, leave_date, worker_status, social_security_base) "
+                        +
+                        "VALUES (#{userId}, #{positionId}, #{hireDate}, #{leaveDate}, #{workerStatus}, #{socialSecurityBase})")
         @Options(useGeneratedKeys = true, keyProperty = "onDutyWorkerId")
         int insert(OnDutyWorker worker);
 
-        @Update("UPDATE on_duty_worker SET hire_date = #{hireDate}, leave_date = #{leaveDate}, worker_status = #{workerStatus} "
-                        +
+        @Update("UPDATE on_duty_worker SET hire_date = #{hireDate}, leave_date = #{leaveDate}, " +
+                        "worker_status = #{workerStatus}, social_security_base = #{socialSecurityBase} " +
                         "WHERE on_duty_worker_id = #{onDutyWorkerId}")
         int update(OnDutyWorker worker);
 

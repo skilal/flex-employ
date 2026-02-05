@@ -189,21 +189,48 @@ public class SalaryService {
         // 提成目前暂未关联具体业务数据，先取 0，待后续扩展
         slip.setBonusPay(performancePay.add(fixedBonus));
 
-        // 6. 五险一金 (Deductions) - 使用配置的费率
+        // 6. 应发工资总额 (Gross Pay) - 计算社保基数的前置条件
+        BigDecimal grossPay = basePay.add(slip.getBonusPay()).add(slip.getOvertimePay());
+        slip.setGrossPay(grossPay);
+
+        // 7. 社保基数确定逻辑
+        BigDecimal socialBase = worker.getSocialSecurityBase();
+        if (socialBase == null) {
+            // 首月核定：使用应发工资总额
+            socialBase = grossPay;
+            // 应用上下限
+            BigDecimal lower = config.getSocialSecurityBaseLower() != null ? config.getSocialSecurityBaseLower()
+                    : BigDecimal.ZERO;
+            BigDecimal upper = config.getSocialSecurityBaseUpper() != null ? config.getSocialSecurityBaseUpper()
+                    : new BigDecimal("999999");
+
+            if (socialBase.compareTo(lower) < 0)
+                socialBase = lower;
+            if (socialBase.compareTo(upper) > 0)
+                socialBase = upper;
+
+            // 持久化到员工表
+            worker.setSocialSecurityBase(socialBase);
+            workerMapper.update(worker);
+        }
+
+        // 8. 五险一金 (Deductions) - 使用核定后的社保基数
         slip.setPensionDeduction(
-                basePay.multiply(config.getPensionRate() != null ? config.getPensionRate() : BigDecimal.ZERO)
+                socialBase.multiply(config.getPensionRate() != null ? config.getPensionRate() : BigDecimal.ZERO)
                         .setScale(2, RoundingMode.HALF_UP));
         slip.setMedicalDeduction(
-                basePay.multiply(config.getMedicalRate() != null ? config.getMedicalRate() : BigDecimal.ZERO)
+                socialBase.multiply(config.getMedicalRate() != null ? config.getMedicalRate() : BigDecimal.ZERO)
                         .setScale(2, RoundingMode.HALF_UP));
         slip.setUnemploymentDeduction(
-                basePay.multiply(config.getUnemploymentRate() != null ? config.getUnemploymentRate() : BigDecimal.ZERO)
+                socialBase
+                        .multiply(config.getUnemploymentRate() != null ? config.getUnemploymentRate() : BigDecimal.ZERO)
                         .setScale(2, RoundingMode.HALF_UP));
         slip.setInjuryDeduction(
-                basePay.multiply(config.getInjuryRate() != null ? config.getInjuryRate() : BigDecimal.ZERO).setScale(2,
+                socialBase.multiply(config.getInjuryRate() != null ? config.getInjuryRate() : BigDecimal.ZERO).setScale(
+                        2,
                         RoundingMode.HALF_UP));
         slip.setPfDeduction(
-                basePay.multiply(config.getHousingFundRate() != null ? config.getHousingFundRate() : BigDecimal.ZERO)
+                socialBase.multiply(config.getHousingFundRate() != null ? config.getHousingFundRate() : BigDecimal.ZERO)
                         .setScale(2, RoundingMode.HALF_UP));
 
         // 合计
@@ -216,13 +243,59 @@ public class SalaryService {
                 .add(slip.getAbsenceDeduction())
                 .add(slip.getLeaveDeduction());
 
-        slip.setGrossPay(basePay.add(slip.getBonusPay()).add(slip.getOvertimePay())); // 包含绩效奖金与加班费
         slip.setTotalDeduction(totalDeduction);
         slip.setNetPay(slip.getGrossPay().subtract(totalDeduction));
         slip.setActualPaymentDate(null); // 初始为空，表示未支付
         slip.setConfirmStatus(1);
 
         paySlipMapper.insert(slip);
+    }
+
+    /**
+     * 手动/定时触发：根据上一年度平均工资调整员工社保基数
+     */
+    @Transactional
+    public void adjustAnnualSocialSecurityBase(Long onDutyWorkerId, int lastYear) {
+        OnDutyWorker worker = workerMapper.findById(onDutyWorkerId);
+        if (worker == null)
+            return;
+
+        Position position = positionMapper.findById(worker.getPositionId());
+        if (position == null || position.getSalaryConfigId() == null)
+            return;
+        SalaryConfig config = salaryConfigMapper.findById(position.getSalaryConfigId());
+        if (config == null)
+            return;
+
+        // 获取该员工去年的所有薪资单
+        List<PaySlip> lastYearSlips = paySlipMapper.findByUserId(worker.getUserId()); // 简化逻辑，实际应过滤 workerId 和年份
+
+        BigDecimal totalGross = BigDecimal.ZERO;
+        int count = 0;
+        for (PaySlip s : lastYearSlips) {
+            if (s.getCycleStart().getYear() == lastYear) {
+                totalGross = totalGross.add(s.getGrossPay());
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            BigDecimal avgGross = totalGross.divide(new BigDecimal(count), 2, RoundingMode.HALF_UP);
+
+            // 应用上下限
+            BigDecimal lower = config.getSocialSecurityBaseLower() != null ? config.getSocialSecurityBaseLower()
+                    : BigDecimal.ZERO;
+            BigDecimal upper = config.getSocialSecurityBaseUpper() != null ? config.getSocialSecurityBaseUpper()
+                    : new BigDecimal("999999");
+
+            if (avgGross.compareTo(lower) < 0)
+                avgGross = lower;
+            if (avgGross.compareTo(upper) > 0)
+                avgGross = upper;
+
+            worker.setSocialSecurityBase(avgGross);
+            workerMapper.update(worker);
+        }
     }
 
     private LocalDate calculateCycleEnd(LocalDate start, String cycle) {
