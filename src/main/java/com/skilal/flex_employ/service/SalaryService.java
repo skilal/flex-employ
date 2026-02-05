@@ -41,7 +41,7 @@ public class SalaryService {
     private AttendanceService attendanceService;
 
     // 每天凌晨2点自动生成薪资记录
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "0 49 15 * * ?")
     @Transactional
     public void autoGeneratePaySlips() {
         // 查找所有在岗员工

@@ -56,38 +56,51 @@
     <!-- 表格 -->
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="attendanceId" label="考勤ID" width="80" />
-        <el-table-column label="员工信息" width="150">
+        <el-table-column prop="attendanceId" label="ID" width="70" />
+        <el-table-column label="员工信息" width="130">
           <template #default="{ row }">
-            <div>{{ row.userName || '-' }}</div>
-            <div style="color: #909399; font-size: 12px;">ID: {{ row.onDutyWorkerId }}</div>
+            <div style="font-weight: bold">{{ row.userName || '-' }}</div>
+            <div style="color: #909399; font-size: 11px;">ID: {{ row.onDutyWorkerId }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="岗位信息" width="180">
+        <el-table-column label="单位/岗位" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ row.positionName || '-' }}</div>
-            <div style="color: #909399; font-size: 12px;">ID: {{ row.positionId }}</div>
+            <div style="color: #909399; font-size: 11px;">PID: {{ row.positionId }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="attendanceDate" label="考勤日期" width="120" />
-        <el-table-column prop="checkInTime" label="应签到时间" width="120" />
-        <el-table-column prop="checkOutTime" label="应签退时间" width="120" />
-        <el-table-column prop="actualCheckIn" label="实际签到时间" width="150" />
-        <el-table-column prop="actualCheckOut" label="实际签退时间" width="150" />
-        <el-table-column prop="attendanceStatus" label="考勤状态" width="100">
+        <el-table-column prop="attendanceDate" label="考勤日期" width="105" />
+        <el-table-column label="标准时段" width="110">
           <template #default="{ row }">
-            <el-tag v-if="row.attendanceStatus === '正常'" type="success">正常</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '迟到'" type="warning">迟到</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '早退'" type="warning">早退</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '迟到且早退'" type="warning">迟到且早退</el-tag>
-            <el-tag v-else-if="row.attendanceStatus === '请假'" type="info">请假</el-tag>
-            <el-tag v-else type="danger">缺勤</el-tag>
+            <div style="font-size: 12px; color: #606266">
+              {{ formatTime(row.checkInTime) }}
+            </div>
+            <div style="font-size: 12px; color: #606266">
+              {{ formatTime(row.checkOutTime) }}
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="实际记录" width="130">
           <template #default="{ row }">
-            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+            <div style="font-size: 12px; color: #409EFF">
+              <el-icon style="vertical-align: middle"><Timer /></el-icon> {{ formatTime(row.actualCheckIn) }}
+            </div>
+            <div style="font-size: 12px; color: #409EFF">
+              <el-icon style="vertical-align: middle"><Timer /></el-icon> {{ formatTime(row.actualCheckOut) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="attendanceStatus" label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.attendanceStatus)" size="small">
+              {{ row.attendanceStatus }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -213,6 +226,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Timer, Plus } from '@element-plus/icons-vue'
 import { getAttendances, createAttendance, updateAttendance, deleteAttendance } from '../../api/attendance'
 import { getWorkers } from '../../api/worker'
 
@@ -321,6 +335,11 @@ const handleReset = () => {
   searchForm.attendanceDate = null
   searchForm.attendanceStatus = null
   handleSearch()
+}
+
+const formatTime = (time) => {
+  if (!time) return '--:--'
+  return time.length > 5 ? time.substring(0, 5) : time
 }
 
 const formatWorkingDays = (daysStr) => {

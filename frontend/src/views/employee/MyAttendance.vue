@@ -68,7 +68,7 @@
       <el-table :data="pagedData" border stripe v-loading="loading">
         <el-table-column prop="attendanceId" label="ID" width="80" />
         <el-table-column prop="attendanceDate" label="考勤日期" width="110" />
-        <el-table-column label="所属岗位" width="120" show-overflow-tooltip>
+        <el-table-column label="所属岗位" width="140" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="pro-pos-name">{{ row.positionName || '-' }}</span>
           </template>
