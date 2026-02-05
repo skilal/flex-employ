@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +38,9 @@ public class SalaryService {
 
     @Autowired
     private AttendanceService attendanceService;
+
+    @Autowired
+    private HolidayCalendarMapper holidayCalendarMapper;
 
     // 每天凌晨2点自动生成薪资记录
     @Scheduled(cron = "0 0 2 * * ?")
@@ -162,7 +164,6 @@ public class SalaryService {
         // 请假扣款
         BigDecimal leaveDeduction = BigDecimal.ZERO;
         for (LeaveRequest l : leaves) {
-            long days = ChronoUnit.DAYS.between(l.getStartDate(), l.getEndDate()) + 1;
             BigDecimal dailyRaw = config.getBaseRate(); // 假设按天
             if ("病假".equals(l.getLeaveType())) {
                 leaveDeduction = leaveDeduction.add(dailyRaw.multiply(config.getSickLeaveRate()));
@@ -172,7 +173,16 @@ public class SalaryService {
         }
         slip.setLeaveDeduction(leaveDeduction);
 
-        // 5. 绩效与奖金 (Income)
+        // 5. 加班费计算
+        BigDecimal totalOvertimePay = BigDecimal.ZERO;
+        if (config.getHasOvertimePay() != null && config.getHasOvertimePay() == 1) {
+            for (Attendance a : attendances) {
+                totalOvertimePay = totalOvertimePay.add(calculateDailyOvertimePay(a, position, config));
+            }
+        }
+        slip.setOvertimePay(totalOvertimePay.setScale(2, RoundingMode.HALF_UP));
+
+        // 6. 绩效与奖金 (Income)
         BigDecimal performancePay = config.getPerformanceBonus() != null ? config.getPerformanceBonus()
                 : BigDecimal.ZERO;
         BigDecimal fixedBonus = config.getBonus() != null ? config.getBonus() : BigDecimal.ZERO;
@@ -203,9 +213,10 @@ public class SalaryService {
 
         BigDecimal totalDeduction = insuranceDeduction.add(slip.getLateDeduction())
                 .add(slip.getEarlyLeaveDeduction()).add(slip.getAbsentDeduction())
+                .add(slip.getAbsenceDeduction())
                 .add(slip.getLeaveDeduction());
 
-        slip.setGrossPay(basePay.add(slip.getBonusPay())); // 包含绩效奖金
+        slip.setGrossPay(basePay.add(slip.getBonusPay()).add(slip.getOvertimePay())); // 包含绩效奖金与加班费
         slip.setTotalDeduction(totalDeduction);
         slip.setNetPay(slip.getGrossPay().subtract(totalDeduction));
         slip.setActualPaymentDate(null); // 初始为空，表示未支付
@@ -297,5 +308,89 @@ public class SalaryService {
             minutes += 24 * 60;
         }
         return new BigDecimal(minutes).divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 计算单日加班费
+     */
+    private BigDecimal calculateDailyOvertimePay(Attendance a, Position p, SalaryConfig config) {
+        if (a.getActualCheckIn() == null || a.getActualCheckOut() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        // 1. 计算总加班分钟数
+        // 签到早于应签到时间 -> 加班
+        long beforeMins = java.time.Duration.between(a.getActualCheckIn(), p.getCheckInTime()).toMinutes();
+        // 签退晚于应签退时间 -> 加班
+        long afterMins = java.time.Duration.between(p.getCheckOutTime(), a.getActualCheckOut()).toMinutes();
+
+        long totalMins = Math.max(0, beforeMins) + Math.max(0, afterMins);
+        if (totalMins <= 0)
+            return BigDecimal.ZERO;
+
+        // 2. 确定加班倍率
+        BigDecimal multiplier = config.getOvertimeWeekdayMultiplier() != null ? config.getOvertimeWeekdayMultiplier()
+                : new BigDecimal("1.5");
+        HolidayCalendar holiday = holidayCalendarMapper.findByDate(a.getAttendanceDate());
+
+        if (holiday != null) {
+            if ("法定节假日".equals(holiday.getDayType())) {
+                multiplier = config.getOvertimeHolidayMultiplier() != null ? config.getOvertimeHolidayMultiplier()
+                        : new BigDecimal("3.0");
+            } else if ("休息日".equals(holiday.getDayType())) {
+                multiplier = config.getOvertimeWeekendMultiplier() != null ? config.getOvertimeWeekendMultiplier()
+                        : new BigDecimal("2.0");
+            }
+        } else {
+            // 无节日配置时，判断是否为周末
+            int dayOfWeek = a.getAttendanceDate().getDayOfWeek().getValue();
+            if (dayOfWeek == 6 || dayOfWeek == 7) {
+                multiplier = config.getOvertimeWeekendMultiplier() != null ? config.getOvertimeWeekendMultiplier()
+                        : new BigDecimal("2.0");
+            }
+        }
+
+        // 3. 应用计算模式
+        int mode = config.getOvertimeCalcMode() != null ? config.getOvertimeCalcMode() : 3;
+        int threshold = config.getOvertimeThresholdMin() != null ? config.getOvertimeThresholdMin() : 0;
+        BigDecimal roundingUnit = config.getOvertimeRoundingUnit() != null ? config.getOvertimeRoundingUnit()
+                : BigDecimal.ONE;
+
+        double finalHours = 0;
+        switch (mode) {
+            case 1: // 起算阈值模式 (满 threshold 分钟才计费)
+                if (totalMins >= threshold) {
+                    finalHours = totalMins / 60.0;
+                }
+                break;
+            case 2: // 取整计算模式
+                // 强制按单位向下取整。例：单位0.5，加班75分(1.25h) -> 1.0h
+                double rawHours = totalMins / 60.0;
+                double unit = roundingUnit.doubleValue();
+                finalHours = Math.floor(rawHours / unit) * unit;
+                break;
+            case 3: // 分钟折算模式 (默认)
+            default:
+                finalHours = totalMins / 60.0;
+                break;
+        }
+
+        if (finalHours <= 0)
+            return BigDecimal.ZERO;
+
+        // 4. 确定加班时薪基数
+        BigDecimal hourlyBase = config.getBaseRate() != null ? config.getBaseRate() : BigDecimal.ZERO;
+        if (config.getBillingMethod() != null && config.getBillingMethod() == 2) {
+            // 按日计费：加班时薪 = 日薪 / 每日标准工时
+            BigDecimal dailyHours = calculateStandardDailyHours(p);
+            if (dailyHours.compareTo(BigDecimal.ZERO) > 0) {
+                hourlyBase = hourlyBase.divide(dailyHours, 4, RoundingMode.HALF_UP);
+            }
+        }
+
+        // 加班费 = 加班时长(时) * 加班时薪基数 * 倍率
+        return new BigDecimal(finalHours)
+                .multiply(hourlyBase)
+                .multiply(multiplier);
     }
 }
