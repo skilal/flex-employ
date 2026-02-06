@@ -28,10 +28,13 @@ public class WorkerController {
     }
 
     @GetMapping("/my")
-    public Result<List<OnDutyWorker>> getMyWorkerRecord(@RequestHeader("Authorization") String token) {
+    public Result<List<OnDutyWorker>> getMyWorkerRecord(
+            @RequestParam(required = false) String positionName,
+            @RequestParam(required = false) String workerStatus,
+            @RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);
-        List<OnDutyWorker> workers = workerMapper.findByUserId(userId);
+        List<OnDutyWorker> workers = workerMapper.findByUserId(userId, positionName, workerStatus);
         return Result.success(workers);
     }
 

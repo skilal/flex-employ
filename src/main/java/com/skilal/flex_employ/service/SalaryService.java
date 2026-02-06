@@ -293,7 +293,7 @@ public class SalaryService {
         // 获取本年度该员工的所有历史薪资记录，用于累计核算
         int currentYear = slip.getCycleEnd().getYear();
         int currentMonthCount = slip.getCycleEnd().getMonthValue();
-        List<PaySlip> yearSlips = paySlipMapper.findByUserId(worker.getUserId());
+        List<PaySlip> yearSlips = paySlipMapper.findByUserId(worker.getUserId(), null, null, null, null);
 
         BigDecimal cumulativeGross = grossPay;
         BigDecimal cumulativeAttendanceDeduction = attendanceDeductionTotal;
@@ -392,7 +392,9 @@ public class SalaryService {
             return;
 
         // 获取该员工去年的所有薪资单
-        List<PaySlip> lastYearSlips = paySlipMapper.findByUserId(worker.getUserId()); // 简化逻辑，实际应过滤 workerId 和年份
+        List<PaySlip> lastYearSlips = paySlipMapper.findByUserId(worker.getUserId(), null, null, null, null); // 简化逻辑，实际应过滤
+                                                                                                              // workerId
+                                                                                                              // 和年份
 
         BigDecimal totalGross = BigDecimal.ZERO;
         int count = 0;

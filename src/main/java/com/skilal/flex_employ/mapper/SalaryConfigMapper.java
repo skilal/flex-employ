@@ -7,8 +7,18 @@ import java.util.List;
 @Mapper
 public interface SalaryConfigMapper {
 
-        @Select("SELECT * FROM salary_config ORDER BY created_at DESC")
-        List<SalaryConfig> findAll();
+        @Select("<script>" +
+                        "SELECT * FROM salary_config " +
+                        "WHERE 1=1 " +
+                        "<if test='configName != null and configName != \"\"'> AND config_name LIKE CONCAT('%', #{configName}, '%') </if>"
+                        +
+                        "<if test='payCycle != null and payCycle != \"\"'> AND pay_cycle = #{payCycle} </if>" +
+                        "<if test='billingMethod != null'> AND billing_method = #{billingMethod} </if>" +
+                        "ORDER BY created_at DESC" +
+                        "</script>")
+        List<SalaryConfig> findAll(@Param("configName") String configName,
+                        @Param("payCycle") String payCycle,
+                        @Param("billingMethod") Integer billingMethod);
 
         @Select("SELECT * FROM salary_config WHERE config_id = #{id}")
         SalaryConfig findById(Long id);

@@ -1,31 +1,63 @@
 <template>
   <div class="my-position">
+    <!-- 搜索栏 -->
+    <el-card class="search-card">
+      <el-form :inline="true" :model="searchForm">
+        <el-form-item label="岗位名称">
+          <el-input v-model="searchForm.positionName" placeholder="筛选岗位" clearable @change="handleSearch" />
+        </el-form-item>
+        <el-form-item label="在岗状态">
+          <el-select v-model="searchForm.workerStatus" placeholder="全部状态" clearable @change="handleSearch">
+            <el-option label="在岗" value="在岗" />
+            <el-option label="已结束" value="已结束" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <!-- 岗位列表 -->
     <el-card>
       <template #header>
-        <h3>我的岗位记录</h3>
+        <div class="card-header">
+          <h3>我的岗位记录</h3>
+        </div>
       </template>
 
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="onDutyWorkerId" label="记录ID" width="100" />
-        <el-table-column prop="positionId" label="岗位ID" width="100" />
-        <el-table-column prop="positionName" label="岗位名称" width="150" />
-        <el-table-column prop="checkInTime" label="上班时间" width="120" />
-        <el-table-column prop="checkOutTime" label="下班时间" width="120" />
-        <el-table-column prop="hireDate" label="入职日期" width="120" />
-        <el-table-column prop="leaveDate" label="离职日期" width="120" />
-        <el-table-column label="状态" width="100">
+      <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%">
+        <el-table-column prop="onDutyWorkerId" label="记录ID" width="80" />
+        <el-table-column prop="positionName" label="岗位名称" show-overflow-tooltip />
+        <el-table-column prop="checkInTime" label="上班时间" width="110" />
+        <el-table-column prop="checkOutTime" label="下班时间" width="110" />
+        <el-table-column prop="hireDate" label="入职日期" width="110" />
+        <el-table-column prop="leaveDate" label="离职日期" width="110" />
+        <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag v-if="!row.leaveDate" type="success">在岗</el-tag>
             <el-tag v-else type="info">已结束</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button v-if="!row.leaveDate" size="small" type="primary" @click="handleLeave(row)">请假</el-button>
-            <el-button size="small" @click="handleViewSchedule(row)">查看排班</el-button>
+            <el-button size="small" @click="handleViewSchedule(row)">排班</el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        style="margin-top: 20px; justify-content: flex-end"
+      />
 
       <el-empty v-if="tableData.length === 0 && !loading" description="暂无在岗记录" />
     </el-card>
@@ -158,17 +190,59 @@ const leaveRules = {
   reason: [{ required: true, message: '请输入请假原因', trigger: 'blur' }]
 }
 
+const searchForm = reactive({
+  positionName: '',
+  workerStatus: null
+})
+
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const allData = ref([])
+
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getMyWorkerRecord()
-    tableData.value = res.data.records || res.data || []
+    const params = {
+      positionName: searchForm.positionName || undefined,
+      workerStatus: searchForm.workerStatus || undefined
+    }
+    const res = await getMyWorkerRecord(params)
+    const rawData = res.data || []
+    allData.value = rawData
+    total.value = rawData.length
+    
+    // 客户端分页
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    tableData.value = rawData.slice(start, end)
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = () => {
+  currentPage.value = 1
+  loadData()
+}
+
+const handleReset = () => {
+  searchForm.positionName = ''
+  searchForm.workerStatus = null
+  handleSearch()
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  loadData()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  loadData()
 }
 
 const handleViewSchedule = (row) => {
@@ -234,7 +308,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.my-position {
-  width: 100%;
-}
+.my-position { width: 100%; box-sizing: border-box; }
+.search-card { margin-bottom: 20px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-header h3 { margin: 0; }
 </style>

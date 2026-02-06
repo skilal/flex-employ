@@ -16,8 +16,11 @@ public class SalaryConfigController {
     private SalaryConfigMapper salaryConfigMapper;
 
     @GetMapping
-    public Result<List<SalaryConfig>> getAll() {
-        return Result.success(salaryConfigMapper.findAll());
+    public Result<List<SalaryConfig>> getAll(
+            @RequestParam(required = false) String configName,
+            @RequestParam(required = false) String payCycle,
+            @RequestParam(required = false) Integer billingMethod) {
+        return Result.success(salaryConfigMapper.findAll(configName, payCycle, billingMethod));
     }
 
     @GetMapping("/{id}")

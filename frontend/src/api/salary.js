@@ -3,10 +3,11 @@ import request from '../utils/request'
 // --- 薪资配置模版 (SalaryConfig) ---
 
 // 获取所有薪资配置模版
-export function getSalaryConfigs() {
+export function getSalaryConfigs(params) {
     return request({
         url: '/salary-configs',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 
@@ -56,10 +57,11 @@ export function getPaySlips(params) {
 }
 
 // 我的薪资记录
-export function getMyPaySlips() {
+export function getMyPaySlips(params) {
     return request({
         url: '/salaries/my',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 

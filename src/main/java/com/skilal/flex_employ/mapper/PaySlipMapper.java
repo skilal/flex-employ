@@ -8,18 +8,46 @@ import java.util.List;
 @Mapper
 public interface PaySlipMapper {
 
-        @Select("SELECT p.*, u.account AS userName, pos.position_name AS positionName FROM pay_slip p " +
+        @Select("<script>" +
+                        "SELECT p.*, u.account AS userName, pos.position_name AS positionName FROM pay_slip p " +
                         "LEFT JOIN on_duty_worker w ON p.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position pos ON w.position_id = pos.position_id " +
-                        "ORDER BY p.cycle_end DESC")
-        List<PaySlip> findAll();
+                        "WHERE 1=1 " +
+                        "<if test='userName != null and userName != \"\"'> AND u.account LIKE CONCAT('%', #{userName}, '%') </if>"
+                        +
+                        "<if test='positionName != null and positionName != \"\"'> AND pos.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
+                        +
+                        "<if test='paymentStatus == \"PAID\"'> AND p.actual_payment_date IS NOT NULL </if>" +
+                        "<if test='paymentStatus == \"PENDING\"'> AND p.actual_payment_date IS NULL </if>" +
+                        "<if test='startDate != null'> AND p.cycle_start &gt;= #{startDate} </if>" +
+                        "<if test='endDate != null'> AND p.cycle_end &lt;= #{endDate} </if>" +
+                        "ORDER BY p.cycle_end DESC" +
+                        "</script>")
+        List<PaySlip> findAll(@Param("userName") String userName,
+                        @Param("positionName") String positionName,
+                        @Param("paymentStatus") String paymentStatus,
+                        @Param("startDate") String startDate,
+                        @Param("endDate") String endDate);
 
-        @Select("SELECT p.*, pos.position_name AS positionName FROM pay_slip p " +
+        @Select("<script>" +
+                        "SELECT p.*, pos.position_name AS positionName FROM pay_slip p " +
                         "INNER JOIN on_duty_worker w ON p.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN position pos ON w.position_id = pos.position_id " +
-                        "WHERE w.user_id = #{userId} ORDER BY p.cycle_end DESC")
-        List<PaySlip> findByUserId(Long userId);
+                        "WHERE w.user_id = #{userId} " +
+                        "<if test='positionName != null and positionName != \"\"'> AND pos.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
+                        +
+                        "<if test='paymentStatus == \"PAID\"'> AND p.actual_payment_date IS NOT NULL </if>" +
+                        "<if test='paymentStatus == \"PENDING\"'> AND p.actual_payment_date IS NULL </if>" +
+                        "<if test='startDate != null'> AND p.cycle_start &gt;= #{startDate} </if>" +
+                        "<if test='endDate != null'> AND p.cycle_end &lt;= #{endDate} </if>" +
+                        "ORDER BY p.cycle_end DESC" +
+                        "</script>")
+        List<PaySlip> findByUserId(@Param("userId") Long userId,
+                        @Param("positionName") String positionName,
+                        @Param("paymentStatus") String paymentStatus,
+                        @Param("startDate") String startDate,
+                        @Param("endDate") String endDate);
 
         @Select("SELECT * FROM pay_slip WHERE pay_record_id = #{payRecordId}")
         PaySlip findById(Long payRecordId);

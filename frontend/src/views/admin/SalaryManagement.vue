@@ -3,21 +3,38 @@
     <!-- 搜索栏 -->
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
+        <el-form-item label="员工姓名">
+          <el-input v-model="searchForm.userName" placeholder="账号/姓名" clearable @change="handleSearch" />
+        </el-form-item>
+        <el-form-item label="岗位名称">
+          <el-input v-model="searchForm.positionName" placeholder="岗位信息" clearable @change="handleSearch" />
+        </el-form-item>
         <el-form-item label="支付状态">
           <el-select 
             v-model="searchForm.paymentStatus" 
-            placeholder="支付状态" 
+            placeholder="全部状态" 
             clearable
             @change="handleSearch"
-            @clear="handleSearch"
-            style="width: 150px"
+            style="width: 120px"
           >
             <el-option label="待支付" value="PENDING" />
             <el-option label="已支付" value="PAID" />
-            <el-option label="支付失败" value="FAILED" />
           </el-select>
         </el-form-item>
+        <el-form-item label="计费周期">
+          <el-date-picker
+            v-model="searchForm.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            @change="handleSearch"
+            style="width: 240px"
+          />
+        </el-form-item>
         <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -314,7 +331,10 @@ import { getPaySlips, createPaySlip, updatePaySlip, deleteSalary, getPredictDead
 import { getWorkers } from '../../api/worker'
 
 const searchForm = reactive({
-  // 现在通过 actualPaymentDate 判断支付状态，不需要独立的筛选字段
+  userName: '',
+  positionName: '',
+  paymentStatus: null,
+  dateRange: []
 })
 
 const tableData = ref([])
@@ -370,7 +390,14 @@ const loadData = async () => {
   loading.value = true
   try {
     const params = {
+      userName: searchForm.userName || undefined,
+      positionName: searchForm.positionName || undefined,
       paymentStatus: searchForm.paymentStatus || undefined
+    }
+    
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      params.startDate = searchForm.dateRange[0]
+      params.endDate = searchForm.dateRange[1]
     }
     
     const res = await getPaySlips(params)
@@ -396,7 +423,10 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
+  searchForm.userName = ''
+  searchForm.positionName = ''
   searchForm.paymentStatus = null
+  searchForm.dateRange = []
   handleSearch()
 }
 

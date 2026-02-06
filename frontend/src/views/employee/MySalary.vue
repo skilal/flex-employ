@@ -1,5 +1,35 @@
 <template>
   <div class="my-salary">
+    <!-- 搜索栏 -->
+    <el-card class="search-card">
+      <el-form :inline="true" :model="searchForm">
+        <el-form-item label="岗位名称">
+          <el-input v-model="searchForm.positionName" placeholder="筛选岗位" clearable @change="handleSearch" />
+        </el-form-item>
+        <el-form-item label="计薪月份">
+          <el-date-picker
+            v-model="searchForm.dateRange"
+            type="monthrange"
+            range-separator="至"
+            start-placeholder="开始月份"
+            end-placeholder="结束月份"
+            value-format="YYYY-MM"
+            @change="handleSearch"
+          />
+        </el-form-item>
+        <el-form-item label="支付状态">
+          <el-select v-model="searchForm.paymentStatus" placeholder="全部状态" clearable @change="handleSearch">
+            <el-option label="待支付" value="PENDING" />
+            <el-option label="已支付" value="PAID" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <!-- 薪资列表 -->
     <el-card>
       <template #header>
@@ -9,20 +39,26 @@
         </div>
       </template>
 
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column label="计薪周期" width="200">
+      <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%">
+        <el-table-column prop="positionName" label="所属岗位" show-overflow-tooltip />
+        <el-table-column prop="cycleStart" label="周期开始" width="110" />
+        <el-table-column prop="cycleEnd" label="周期结束" width="110" />
+        <el-table-column label="应发金额" width="100">
+          <template #default="{ row }">¥{{ row.grossPay }}</template>
+        </el-table-column>
+        <el-table-column label="扣除合计" width="100">
+          <template #default="{ row }">¥{{ row.totalDeduction }}</template>
+        </el-table-column>
+        <el-table-column label="实发金额" width="100">
           <template #default="{ row }">
-            {{ row.cycleStart }} 至 {{ row.cycleEnd }}
+            <span style="color: #409eff; font-weight: bold">¥{{ row.netPay }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="实发金额" width="120">
+        <el-table-column label="支付状态" width="100">
           <template #default="{ row }">
-            <span style="color: #f56c6c; font-weight: bold">¥{{ row.netPay }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="paymentStatus" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.paymentStatus)">{{ row.paymentStatus }}</el-tag>
+            <el-tag :type="row.actualPaymentDate ? 'success' : 'warning'">
+              {{ row.actualPaymentDate ? '已发放' : '待发放' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="deadlineDate" label="预计最晚发放" width="120" />
@@ -32,7 +68,16 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="tableData.length === 0 && !loading" description="暂无结算记录" />
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        style="margin-top: 20px; justify-content: flex-end"
+      />
     </el-card>
 
     <!-- 电子工资条对话框 -->
@@ -45,7 +90,6 @@
 
         <el-divider>收入项</el-divider>
         <div class="money-grid">
-          <div class="item"><span>周期标准工资</span><strong>¥{{ currentRow.periodBasePay }}</strong></div>
           <div class="item"><span>底薪 (出勤实发)</span><strong>¥{{ currentRow.basePay }}</strong></div>
           <div class="item"><span>绩效/奖金</span><strong>¥{{ currentRow.bonusPay }}</strong></div>
           <div class="item"><span>加班费</span><strong>¥{{ currentRow.overtimePay }}</strong></div>
@@ -82,7 +126,7 @@
             实发工薪：<span>¥{{ currentRow.netPay }}</span>
           </div>
           <div class="status-tip">
-            结算状态：{{ currentRow.paymentStatus }} | 预计最晚发放：{{ currentRow.deadlineDate }}
+            结算状态：{{ currentRow.actualPaymentDate ? '已于 ' + currentRow.actualPaymentDate + ' 发放' : '待发放' }} | 预计最晚发放：{{ currentRow.deadlineDate }}
           </div>
         </div>
       </div>
@@ -91,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getMyPaySlips } from '../../api/salary'
 
@@ -100,16 +144,68 @@ const loading = ref(false)
 const detailVisible = ref(false)
 const currentRow = ref(null)
 
+const searchForm = reactive({
+  positionName: '',
+  paymentStatus: null,
+  dateRange: []
+})
+
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const allData = ref([])
+
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getMyPaySlips()
-    tableData.value = res.data || []
+    const params = {
+      positionName: searchForm.positionName || undefined,
+      paymentStatus: searchForm.paymentStatus || undefined
+    }
+    
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      params.startDate = searchForm.dateRange[0] + "-01"
+      const [year, month] = searchForm.dateRange[1].split('-').map(Number)
+      const lastDay = new Date(year, month, 0).getDate()
+      params.endDate = `${searchForm.dateRange[1]}-${lastDay}`
+    }
+    
+    const res = await getMyPaySlips(params)
+    const rawData = res.data || []
+    allData.value = rawData
+    total.value = rawData.length
+    
+    // 客户端分页切片
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    tableData.value = rawData.slice(start, end)
   } catch (error) {
+    console.error('加载记录失败:', error)
     ElMessage.error('加载薪资单失败')
   } finally {
     loading.value = false
   }
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  loadData()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  loadData()
+}
+
+const handleSearch = () => {
+  loadData()
+}
+
+const handleReset = () => {
+  searchForm.positionName = ''
+  searchForm.paymentStatus = null
+  searchForm.dateRange = []
+  handleSearch()
 }
 
 const handleViewDetail = (row) => {
@@ -117,16 +213,12 @@ const handleViewDetail = (row) => {
   detailVisible.value = true
 }
 
-const getStatusType = (status) => {
-  if (status === '已发放') return 'success'
-  if (status === '待结算') return 'warning'
-  return 'danger'
-}
-
 onMounted(() => { loadData() })
 </script>
 
 <style scoped>
+.my-salary { width: 100%; box-sizing: border-box; }
+.search-card { margin-bottom: 20px; }
 .bill-header { text-align: center; margin-bottom: 20px; }
 .bill-header h2 { margin: 0; color: #333; }
 .bill-header p { color: #999; font-size: 13px; }

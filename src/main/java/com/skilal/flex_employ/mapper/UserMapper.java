@@ -31,11 +31,17 @@ public interface UserMapper {
         int insert(User user);
 
         @Update("<script>" +
-                        "UPDATE user SET " +
-                        "account = #{account}, " +
-                        "<if test='password != null and password != \"\"'> password = #{password}, </if>" +
-                        "gender = #{gender}, birth_date = #{birthDate}, phone = #{phone}, " +
-                        "bank_card = #{bankCard}, role = #{role}, account_status = #{accountStatus} " +
+                        "UPDATE user " +
+                        "<set>" +
+                        "  <if test='account != null'> account = #{account}, </if>" +
+                        "  <if test='password != null and password != \"\"'> password = #{password}, </if>" +
+                        "  <if test='gender != null'> gender = #{gender}, </if>" +
+                        "  <if test='birthDate != null'> birth_date = #{birthDate}, </if>" +
+                        "  <if test='phone != null'> phone = #{phone}, </if>" +
+                        "  <if test='bankCard != null'> bank_card = #{bankCard}, </if>" +
+                        "  <if test='role != null'> role = #{role}, </if>" +
+                        "  <if test='accountStatus != null'> account_status = #{accountStatus}, </if>" +
+                        "</set>" +
                         "WHERE user_id = #{userId}" +
                         "</script>")
         int update(User user);

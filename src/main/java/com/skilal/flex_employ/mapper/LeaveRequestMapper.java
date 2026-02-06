@@ -24,12 +24,19 @@ public interface LeaveRequestMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT l.*, u.account AS userName, p.position_name AS positionName " +
+        @Select("<script>" +
+                        "SELECT l.*, u.account AS userName, p.position_name AS positionName " +
                         "FROM leave_request l " +
                         "LEFT JOIN user u ON l.user_id = u.user_id " +
                         "LEFT JOIN position p ON l.position_id = p.position_id " +
-                        "WHERE l.user_id = #{userId} ORDER BY l.apply_time DESC")
-        List<LeaveRequest> findByUserId(Long userId);
+                        "WHERE l.user_id = #{userId} " +
+                        "<if test='leaveType != null and leaveType != \"\"'> AND l.leave_type = #{leaveType} </if>" +
+                        "<if test='status != null and status != \"\"'> AND l.status = #{status} </if>" +
+                        "ORDER BY l.apply_time DESC" +
+                        "</script>")
+        List<LeaveRequest> findByUserId(@Param("userId") Long userId,
+                        @Param("leaveType") String leaveType,
+                        @Param("status") String status);
 
         @Select("SELECT * FROM leave_request WHERE leave_request_id = #{leaveRequestId}")
         LeaveRequest findById(Long leaveRequestId);

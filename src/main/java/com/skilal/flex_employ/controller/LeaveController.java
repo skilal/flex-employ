@@ -34,10 +34,13 @@ public class LeaveController {
     }
 
     @GetMapping("/my")
-    public Result<List<LeaveRequest>> getMyLeaves(@RequestHeader("Authorization") String token) {
+    public Result<List<LeaveRequest>> getMyLeaves(
+            @RequestParam(required = false) String leaveType,
+            @RequestParam(required = false) String status,
+            @RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);
-        List<LeaveRequest> leaves = leaveRequestMapper.findByUserId(userId);
+        List<LeaveRequest> leaves = leaveRequestMapper.findByUserId(userId, leaveType, status);
         return Result.success(leaves);
     }
 
@@ -48,7 +51,7 @@ public class LeaveController {
         Long userId = jwtUtil.getUserIdFromToken(token);
 
         // 验证岗位ID：必须有在岗记录且状态为在岗
-        List<OnDutyWorker> workerRecords = onDutyWorkerMapper.findByUserId(userId);
+        List<OnDutyWorker> workerRecords = onDutyWorkerMapper.findByUserId(userId, null, null);
         boolean hasValidPosition = workerRecords.stream()
                 .anyMatch(w -> w.getPositionId().equals(leaveRequest.getPositionId())
                         && w.getLeaveDate() == null);

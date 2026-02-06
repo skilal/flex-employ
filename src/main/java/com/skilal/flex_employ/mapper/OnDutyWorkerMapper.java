@@ -31,7 +31,9 @@ public interface OnDutyWorkerMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate, " +
+        @Select("<script>" +
+                        "SELECT w.*, w.worker_status AS workerStatus, w.hire_date AS hireDate, w.leave_date AS leaveDate, "
+                        +
                         "p.position_name AS positionName, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, "
                         +
                         "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, "
@@ -39,8 +41,16 @@ public interface OnDutyWorkerMapper {
                         "w.social_security_base AS socialSecurityBase " +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
-                        "WHERE w.user_id = #{userId}")
-        List<OnDutyWorker> findByUserId(Long userId);
+                        "WHERE w.user_id = #{userId} " +
+                        "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
+                        +
+                        "<if test='workerStatus != null and workerStatus != \"\"'> AND w.worker_status = #{workerStatus} </if>"
+                        +
+                        "ORDER BY w.hire_date DESC" +
+                        "</script>")
+        List<OnDutyWorker> findByUserId(@Param("userId") Long userId,
+                        @Param("positionName") String positionName,
+                        @Param("workerStatus") String workerStatus);
 
         @Select("SELECT w.*, w.user_id AS userId, w.position_id AS positionId, w.worker_status AS workerStatus, " +
                         "w.hire_date AS hireDate, w.leave_date AS leaveDate, w.social_security_base AS socialSecurityBase "

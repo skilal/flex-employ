@@ -1,9 +1,37 @@
 <template>
   <div class="salary-config-management">
+    <!-- 搜索栏 -->
+    <el-card class="search-card">
+      <el-form :inline="true" :model="searchForm">
+        <el-form-item label="模版名称">
+          <el-input v-model="searchForm.configName" placeholder="筛选模版" clearable @change="handleSearch" />
+        </el-form-item>
+        <el-form-item label="结算周期">
+          <el-select v-model="searchForm.payCycle" placeholder="全部周期" clearable @change="handleSearch">
+            <el-option label="日结" value="日结" />
+            <el-option label="周结" value="周结" />
+            <el-option label="15日结" value="15日结" />
+            <el-option label="月结" value="月结" />
+            <el-option label="一次性结算" value="一次性结算" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="计费方式">
+          <el-select v-model="searchForm.billingMethod" placeholder="全部方式" clearable @change="handleSearch">
+            <el-option label="按小时" :value="1" />
+            <el-option label="按天" :value="2" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <el-card>
       <template #header>
         <div class="header-content">
-          <span>薪资配置模版管理</span>
+          <span style="font-weight: bold">薪资配置模版列表</span>
           <el-button type="primary" @click="handleAdd">新增模版</el-button>
         </div>
       </template>
@@ -122,7 +150,7 @@
           <el-col :span="12">
             <el-form-item label="旷工扣款" prop="absentPenalty">
               <el-input-number v-model="form.absentPenalty" :min="0" controls-position="right" style="width: 100%" />
-              <div class="tip">全天未签到定为旷工</div>
+              <div class="tip">旷工由人工核定</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -319,6 +347,13 @@ import { getSalaryConfigs, createSalaryConfig, updateSalaryConfig, deleteSalaryC
 
 const tableData = ref([])
 const loading = ref(false)
+
+const searchForm = reactive({
+  configName: '',
+  payCycle: null,
+  billingMethod: null
+})
+
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitLoading = ref(false)
@@ -372,7 +407,12 @@ const rules = {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getSalaryConfigs()
+    const params = {
+      configName: searchForm.configName || undefined,
+      payCycle: searchForm.payCycle || undefined,
+      billingMethod: searchForm.billingMethod || undefined
+    }
+    const res = await getSalaryConfigs(params)
     tableData.value = res.data || []
   } catch (error) {
     console.error('加载失败:', error)
@@ -380,6 +420,17 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = () => {
+  loadData()
+}
+
+const handleReset = () => {
+  searchForm.configName = ''
+  searchForm.payCycle = null
+  searchForm.billingMethod = null
+  handleSearch()
 }
 
 const handleAdd = () => {
@@ -509,6 +560,9 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.search-card {
+  margin-bottom: 20px;
 }
 .tip {
   font-size: 12px;

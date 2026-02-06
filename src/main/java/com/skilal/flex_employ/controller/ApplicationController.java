@@ -79,7 +79,8 @@ public class ApplicationController {
         }
 
         // 获取用户当前所有在岗记录
-        java.util.List<com.skilal.flex_employ.entity.OnDutyWorker> onDutyList = onDutyWorkerMapper.findByUserId(userId);
+        java.util.List<com.skilal.flex_employ.entity.OnDutyWorker> onDutyList = onDutyWorkerMapper.findByUserId(userId,
+                null, null);
 
         // 检查每个在岗岗位的时间是否与目标岗位冲突
         for (com.skilal.flex_employ.entity.OnDutyWorker worker : onDutyList) {

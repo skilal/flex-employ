@@ -78,6 +78,9 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" type="primary" plain @click="handleShowQR(row)">
+              <el-icon><Iphone /></el-icon> 考勤码
+            </el-button>
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -232,9 +235,23 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
+    </el-dialog>
+
+    <!-- 考勤二维码弹窗 -->
+    <el-dialog v-model="qrDialogVisible" :title="qrPositionName + ' - 考勤打卡二维码'" width="400px" center>
+      <div style="text-align: center; padding: 20px 0;">
+        <div class="qr-container" style="background: white; padding: 15px; display: inline-block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <qrcode-vue :value="qrCodeValue" :size="240" level="H" />
+        </div>
+        <p style="margin-top: 20px; color: #606266; font-size: 14px;">
+          请扫码进行该岗位的签到/签退操作
+        </p>
+        <p style="color: #909399; font-size: 12px; margin-top: 8px;">
+          链接: {{ qrCodeValue }}
+        </p>
+      </div>
       <template #footer>
-        <el-button @click="dialogFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">提交保存</el-button>
+        <el-button type="primary" @click="qrDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
@@ -242,8 +259,9 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Iphone } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import QrcodeVue from 'qrcode.vue'
 import { getPositions, createPosition, updatePosition, deletePosition } from '../../api/position'
 import { getCompanies } from '../../api/company'
 import { getSalaryConfigs } from '../../api/salary'
@@ -288,6 +306,19 @@ let form = reactive({
   workEndTime: '',
   specialNote: ''
 })
+
+// 二维码相关
+const qrDialogVisible = ref(false)
+const qrCodeValue = ref('')
+const qrPositionName = ref('')
+
+const handleShowQR = (row) => {
+  qrPositionName.value = row.positionName
+  // 生成打卡链接，如: http://domain/punch/123
+  const origin = window.location.origin
+  qrCodeValue.value = `${origin}/punch/${row.positionId}`
+  qrDialogVisible.value = true
+}
 
 // 自动计算逻辑
 watch(() => [form.checkInTime, form.checkOutTime], ([inTime, outTime]) => {

@@ -26,8 +26,13 @@ public class SalaryController {
     private JwtUtil jwtUtil;
 
     @GetMapping
-    public Result<List<PaySlip>> getSalaries() {
-        List<PaySlip> salaries = paySlipMapper.findAll();
+    public Result<List<PaySlip>> getSalaries(
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String positionName,
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        List<PaySlip> salaries = paySlipMapper.findAll(userName, positionName, paymentStatus, startDate, endDate);
         return Result.success(salaries);
     }
 
@@ -73,10 +78,15 @@ public class SalaryController {
     }
 
     @GetMapping("/my")
-    public Result<List<PaySlip>> getMySalaries(@RequestHeader("Authorization") String token) {
+    public Result<List<PaySlip>> getMySalaries(
+            @RequestParam(required = false) String positionName,
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);
-        List<PaySlip> salaries = paySlipMapper.findByUserId(userId);
+        List<PaySlip> salaries = paySlipMapper.findByUserId(userId, positionName, paymentStatus, startDate, endDate);
         return Result.success(salaries);
     }
 

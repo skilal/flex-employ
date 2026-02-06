@@ -2,7 +2,7 @@
   <el-container class="admin-layout">
     <el-aside width="200px">
       <div class="sidebar-header">
-        <h3>灵活用工平台</h3>
+        <h3><h3>人力服务公司<br>薪资结算系统</h3></h3>
         <p>管理员</p>
       </div>
       <el-menu
