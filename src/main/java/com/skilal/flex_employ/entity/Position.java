@@ -17,6 +17,7 @@ public class Position {
     private LocalDate workEndTime;
     private String employmentType;
     private Long laborCompanyId;
+    private Long salaryPayerId; // 薪水发放主体公司ID，null表示由人力公司直接发放
 
     // 薪资体系重构：改用配置模版关联
     private Long salaryConfigId;
@@ -36,6 +37,9 @@ public class Position {
     // 冗余字段（由查询 JOIN 获取）
     private transient String companyName;
     private transient String salaryConfigName;
+    private transient String salaryPayerName;
+    private transient String responsibleName;
+    private transient String responsiblePhone;
 
     // 冗余显示字段：薪资配置详情
     private transient String payCycle;

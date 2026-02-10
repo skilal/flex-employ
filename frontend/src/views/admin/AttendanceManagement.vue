@@ -143,7 +143,7 @@
             <el-option
               v-for="item in workers"
               :key="item.onDutyWorkerId"
-              :label="`${item.userName} (${item.positionName})`"
+              :label="item.userName + ' (' + item.positionName + ')'"
               :value="item.onDutyWorkerId"
             />
           </el-select>

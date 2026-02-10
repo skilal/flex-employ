@@ -63,8 +63,20 @@
             <div style="color: #909399; font-size: 12px;">ID: {{ row.positionId }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="resumePdfPath" label="简历路径" width="200" show-overflow-tooltip />
-        <el-table-column prop="applicationNote" label="申请说明" width="200" show-overflow-tooltip />
+        <el-table-column prop="resumePdfPath" label="简历" width="120">
+          <template #default="{ row }">
+            <el-button 
+              v-if="row.resumePdfPath" 
+              type="primary" 
+              link 
+              @click="handleViewResume(row.resumePdfPath)"
+            >
+              查看简历
+            </el-button>
+            <span v-else style="color: #909399">未上传</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="applicationNote" label="申请说明" min-width="200" show-overflow-tooltip />
         <el-table-column prop="status" label="申请状态" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.status === '已申请'" type="warning">已申请</el-tag>
@@ -103,10 +115,25 @@
     <el-dialog v-model="detailVisible" title="申请详情" width="600px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="申请ID">{{ currentRow.applicationId }}</el-descriptions-item>
+        <el-descriptions-item label="申请人姓名">{{ currentRow.userName }}</el-descriptions-item>
+        <el-descriptions-item label="性别">
+          {{ ['M', '男'].includes(currentRow.gender) ? '男' : ['F', '女'].includes(currentRow.gender) ? '女' : '未知' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ currentRow.phone || '-' }}</el-descriptions-item>
         <el-descriptions-item label="用户ID">{{ currentRow.userId }}</el-descriptions-item>
         <el-descriptions-item label="岗位ID">{{ currentRow.positionId }}</el-descriptions-item>
         <el-descriptions-item label="岗位名称">{{ currentRow.positionName }}</el-descriptions-item>
-        <el-descriptions-item label="简历路径">{{ currentRow.resumePdfPath }}</el-descriptions-item>
+        <el-descriptions-item label="简历文件">
+          <el-button 
+            v-if="currentRow.resumePdfPath" 
+            type="primary" 
+            size="small" 
+            @click="handleViewResume(currentRow.resumePdfPath)"
+          >
+            点击在新标签页预览 PDF
+          </el-button>
+          <span v-else>未上传简历</span>
+        </el-descriptions-item>
         <el-descriptions-item label="申请说明">{{ currentRow.applicationNote || '无' }}</el-descriptions-item>
         <el-descriptions-item label="申请状态">{{ currentRow.status }}</el-descriptions-item>
         <el-descriptions-item label="申请时间">{{ currentRow.applyTime }}</el-descriptions-item>
@@ -268,6 +295,12 @@ const handleApproveDialogClose = () => {
 const handleView = (row) => {
   currentRow.value = row
   detailVisible.value = true
+}
+
+const handleViewResume = (path) => {
+  if (path) {
+    window.open(path, '_blank')
+  }
 }
 
 // 删除

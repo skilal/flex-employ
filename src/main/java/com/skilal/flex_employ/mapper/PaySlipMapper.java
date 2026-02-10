@@ -9,12 +9,13 @@ import java.util.List;
 public interface PaySlipMapper {
 
         @Select("<script>" +
-                        "SELECT p.*, u.account AS userName, pos.position_name AS positionName FROM pay_slip p " +
+                        "SELECT p.*, COALESCE(u.name, u.account) AS userName, pos.position_name AS positionName FROM pay_slip p "
+                        +
                         "LEFT JOIN on_duty_worker w ON p.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position pos ON w.position_id = pos.position_id " +
                         "WHERE 1=1 " +
-                        "<if test='userName != null and userName != \"\"'> AND u.account LIKE CONCAT('%', #{userName}, '%') </if>"
+                        "<if test='userName != null and userName != \"\"'> AND (u.account LIKE CONCAT('%', #{userName}, '%') OR u.name LIKE CONCAT('%', #{userName}, '%')) </if>"
                         +
                         "<if test='positionName != null and positionName != \"\"'> AND pos.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +

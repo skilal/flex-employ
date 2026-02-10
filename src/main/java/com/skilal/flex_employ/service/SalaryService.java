@@ -66,6 +66,12 @@ public class SalaryService {
         if (config == null)
             return;
 
+        // 检查薪资发放主体
+        if (position.getSalaryPayerId() != null) {
+            // 如果薪资发放主体不是人力公司（null），则不参与系统自动结算
+            return;
+        }
+
         // 2. 确定计薪周期
         PaySlip lastSlip = paySlipMapper.findLatestByWorkerId(worker.getOnDutyWorkerId());
         LocalDate cycleStart;

@@ -44,6 +44,45 @@
       <el-empty v-if="recruitingPositions.length === 0" description="暂无符合条件的招聘职位" />
     </div>
 
+    <!-- 申请提交对话框 -->
+    <el-dialog v-model="submitVisible" title="提交申请" width="500px">
+      <el-form :model="submitForm" label-width="100px">
+        <el-form-item label="申请岗位">{{ selectedPosition?.positionName }}</el-form-item>
+        <el-form-item label="简历文件" required>
+          <el-upload
+            ref="uploadRef"
+            action="/api/applications/upload"
+            :headers="uploadHeaders"
+            :auto-upload="true"
+            :limit="1"
+            :on-success="handleUploadSuccess"
+            :on-error="handleUploadError"
+            :before-upload="beforeUpload"
+            accept=".pdf"
+          >
+            <template #trigger>
+              <el-button type="primary" plain>选择 PDF 简历</el-button>
+            </template>
+            <template #tip>
+              <div class="el-upload__tip">请上传 .pdf 格式文件，大小不超过 5MB</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="申请说明">
+          <el-input 
+            v-model="submitForm.applicationNote" 
+            type="textarea" 
+            :rows="4" 
+            placeholder="简要说明您的申请优势或期望..." 
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="submitVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmSubmit" :loading="submitting">确认提交</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="detailVisible" title="职位详情" width="650px">
       <div v-if="selectedPosition" class="detail-container">
         <div class="job-title-row">
@@ -53,6 +92,13 @@
         
         <el-descriptions :column="2" border class="m-t-20">
           <el-descriptions-item label="招聘单位" :span="2">{{ selectedPosition.companyName }}</el-descriptions-item>
+          <el-descriptions-item label="劳动关系责任方" :span="2">
+            <el-tag v-if="selectedPosition.salaryPayerId" type="warning" effect="plain">{{ selectedPosition.salaryPayerName }}</el-tag>
+            <el-tag v-else type="info" effect="plain">人力服务公司</el-tag>
+            <span style="font-size: 12px; color: #909399; margin-left: 8px;">(劳动关系及薪资发放主体)</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="岗位负责人">{{ selectedPosition.responsibleName || '管理员' }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ selectedPosition.responsiblePhone || '-' }}</el-descriptions-item>
           <el-descriptions-item label="工作地点" :span="2">{{ selectedPosition.workLocation }}</el-descriptions-item>
           
           <el-descriptions-item label="薪资标准">
@@ -109,7 +155,19 @@ const recruitingPositions = ref([])
 const loading = ref(false)
 const searchForm = reactive({ keyword: '' })
 const detailVisible = ref(false)
+const submitVisible = ref(false)
 const selectedPosition = ref(null)
+
+const uploadRef = ref(null)
+const submitting = ref(false)
+const submitForm = reactive({
+  resumePdfPath: '',
+  applicationNote: ''
+})
+
+const uploadHeaders = {
+  Authorization: localStorage.getItem('token')
+}
 
 const formatWorkingDays = (daysStr) => {
   if (!daysStr) return '未设置'
@@ -147,20 +205,64 @@ const handleViewDetail = (p) => {
 }
 
 const handleApply = (p) => {
-  ElMessageBox.confirm(`确定要申请 ${p.positionName} 岗位吗？`, '提示', {
-    type: 'success'
-  }).then(async () => {
-    try {
-      await request({
-        url: '/applications',
-        method: 'post',
-        data: { positionId: p.positionId }
-      })
-      ElMessage.success('申请提交成功，请等待管理员审核')
-    } catch (error) {
-      ElMessage.error(error.response?.data?.message || '申请失败')
-    }
-  })
+  selectedPosition.value = p
+  submitVisible.value = true
+  submitForm.resumePdfPath = ''
+  submitForm.applicationNote = ''
+  uploadRef.value?.clearFiles()
+}
+
+const beforeUpload = (file) => {
+  const isPdf = file.type === 'application/pdf'
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isPdf) {
+    ElMessage.error('只能上传 PDF 格式的简历')
+  }
+  if (!isLt5M) {
+    ElMessage.error('简历大小不能超过 5MB')
+  }
+  return isPdf && isLt5M
+}
+
+const handleUploadSuccess = (res) => {
+  if (res.code === 200) {
+    submitForm.resumePdfPath = res.data
+    ElMessage.success('简历上传成功')
+  } else {
+    ElMessage.error(res.message || '上传失败')
+  }
+}
+
+const handleUploadError = () => {
+  ElMessage.error('上传失败，请稍后重试')
+}
+
+const confirmSubmit = async () => {
+  if (!submitForm.resumePdfPath) {
+    return ElMessage.warning('请先上传 PDF 简历')
+  }
+
+  submitting.value = true
+  try {
+    await request({
+      url: '/applications',
+      method: 'post',
+      data: {
+        positionId: selectedPosition.value.positionId,
+        resumePdfPath: submitForm.resumePdfPath,
+        applicationNote: submitForm.applicationNote
+      }
+    })
+    ElMessage.success('申请提交成功，请等待管理员审核')
+    submitVisible.value = false
+    detailVisible.value = false
+    loadPositions()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '申请失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 onMounted(() => {

@@ -8,7 +8,8 @@ import java.util.List;
 public interface ApplicationMapper {
 
         @Select("<script>" +
-                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "SELECT a.*, COALESCE(u.name, u.account) AS userName, u.gender, u.phone, p.position_name AS positionName, "
+                        +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
                         "a.application_note AS applicationNote " +
                         "FROM application a " +
@@ -16,7 +17,7 @@ public interface ApplicationMapper {
                         "LEFT JOIN position p ON a.position_id = p.position_id " +
                         "WHERE 1=1 " +
                         "<if test='status != null and status != \"\"'> AND a.status = #{status} </if>" +
-                        "<if test='userName != null and userName != \"\"'> AND u.account LIKE CONCAT('%', #{userName}, '%') </if>"
+                        "<if test='userName != null and userName != \"\"'> AND (u.account LIKE CONCAT('%', #{userName}, '%') OR u.name LIKE CONCAT('%', #{userName}, '%')) </if>"
                         +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +
@@ -26,7 +27,8 @@ public interface ApplicationMapper {
                         @Param("userName") String userName,
                         @Param("positionName") String positionName);
 
-        @Select("SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+        @Select("SELECT a.*, COALESCE(u.name, u.account) AS userName, u.gender, u.phone, p.position_name AS positionName, "
+                        +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
                         "FROM application a " +
                         "LEFT JOIN user u ON a.user_id = u.user_id " +
@@ -34,7 +36,13 @@ public interface ApplicationMapper {
                         "WHERE a.user_id = #{userId} ORDER BY a.apply_time DESC")
         List<Application> findByUserId(Long userId);
 
-        @Select("SELECT * FROM application WHERE application_id = #{applicationId}")
+        @Select("SELECT a.*, COALESCE(u.name, u.account) AS userName, u.gender, u.phone, p.position_name AS positionName, "
+                        +
+                        "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime " +
+                        "FROM application a " +
+                        "LEFT JOIN user u ON a.user_id = u.user_id " +
+                        "LEFT JOIN position p ON a.position_id = p.position_id " +
+                        "WHERE a.application_id = #{applicationId}")
         Application findById(Long applicationId);
 
         @Insert("INSERT INTO application (user_id, position_id, resume_pdf_path, status, application_note) " +

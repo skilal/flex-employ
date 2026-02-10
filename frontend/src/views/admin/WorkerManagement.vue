@@ -128,7 +128,7 @@
             <el-option
               v-for="item in users"
               :key="item.userId"
-              :label="`${item.account} (ID:${item.userId})`"
+              :label="item.name ? `${item.name} (${item.account})` : item.account" 
               :value="item.userId"
             />
           </el-select>

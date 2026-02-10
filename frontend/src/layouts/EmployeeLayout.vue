@@ -2,7 +2,7 @@
   <el-container class="employee-layout">
     <el-aside width="200px">
       <div class="sidebar-header">
-        <h3><h3>人力服务公司<br>薪资结算系统</h3></h3>
+        <h3>人力服务公司<br>薪资结算系统</h3>
         <p>员工</p>
       </div>
       <el-menu
@@ -44,7 +44,7 @@
         <div class="header-content">
           <h2>{{ pageTitle }}</h2>
           <div class="header-right">
-            <span>欢迎，{{ userStore.userInfo?.account || '员工' }}</span>
+            <span>欢迎，{{ userStore.userInfo?.name || userStore.userInfo?.account || '员工' }}</span>
             <el-button @click="handleLogout" text>退出登录</el-button>
           </div>
         </div>

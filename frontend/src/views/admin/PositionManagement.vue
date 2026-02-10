@@ -31,7 +31,13 @@
       <el-table :data="positions" border stripe v-loading="loading">
         <el-table-column prop="positionId" label="ID" width="60" />
         <el-table-column prop="positionName" label="岗位名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="companyName" label="所属劳务公司" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="companyName" label="所属劳务公司" min-width="120" show-overflow-tooltip />
+        <el-table-column label="薪资发放主体" min-width="120" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-tag v-if="row.salaryPayerId" type="warning" effect="plain">{{ row.salaryPayerName }}</el-tag>
+            <el-tag v-else type="info" effect="plain">人力服务公司</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="workLocation" label="工作地点" min-width="150" show-overflow-tooltip />
         <el-table-column prop="employmentType" label="类型" width="120">
           <template #default="{ row }">
@@ -135,6 +141,17 @@
           </el-col>
         </el-row>
 
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="薪资发放主体" prop="salaryPayerId">
+              <el-select v-model="form.salaryPayerId" placeholder="人力服务公司 (缺省)" clearable style="width: 100%">
+                <el-option v-for="c in companies" :key="c.companyId" :label="c.companyName" :value="c.companyId" />
+              </el-select>
+              <div style="font-size: 11px; color: #909399; margin-top: 4px;">留空表示由人力服务公司统一结算</div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-divider>周期与考勤配置</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -210,8 +227,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="负责人ID" prop="responsibleId">
-              <el-input-number v-model="form.responsibleId" :min="1" style="width: 100%" />
+            <el-form-item label="负责人" prop="responsibleId">
+              <el-select v-model="form.responsibleId" placeholder="请选择负责人" filterable style="width: 100%">
+                <el-option 
+                  v-for="u in responsibleUsers" 
+                  :key="u.userId" 
+                  :label="u.name ? `${u.name} (${u.account})` : u.account" 
+                  :value="u.userId" 
+                />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -235,6 +259,10 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
+      <template #footer>
+        <el-button @click="dialogFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">确认保存</el-button>
+      </template>
     </el-dialog>
 
     <!-- 考勤二维码弹窗 -->
@@ -265,10 +293,12 @@ import QrcodeVue from 'qrcode.vue'
 import { getPositions, createPosition, updatePosition, deletePosition } from '../../api/position'
 import { getCompanies } from '../../api/company'
 import { getSalaryConfigs } from '../../api/salary'
+import { getUsers } from '../../api/user'
 
 const positions = ref([])
 const companies = ref([])
 const salaryConfigs = ref([])
+const responsibleUsers = ref([])
 const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
@@ -304,6 +334,7 @@ let form = reactive({
   workingDaysArray: ['1', '2', '3', '4', '5'],
   workStartTime: '',
   workEndTime: '',
+  salaryPayerId: null,
   specialNote: ''
 })
 
@@ -361,9 +392,14 @@ const loadData = async () => {
 }
 
 const loadConfigs = async () => {
-  const [compRes, skillRes] = await Promise.all([getCompanies(), getSalaryConfigs()])
+  const [compRes, skillRes, userRes] = await Promise.all([
+    getCompanies(), 
+    getSalaryConfigs(),
+    getUsers({ role: 'ADMIN' })
+  ])
   companies.value = compRes.data
   salaryConfigs.value = skillRes.data
+  responsibleUsers.value = userRes.data
 }
 
 const handleSearch = () => {
@@ -396,7 +432,8 @@ const handleAdd = () => {
     responsibleId: 1,
     salaryDesc: '',
     specialNote: '',
-    regionCode: '310100'
+    regionCode: '310100',
+    salaryPayerId: null
   })
   dialogFormVisible.value = true
 }

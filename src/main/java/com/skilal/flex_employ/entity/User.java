@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public class User {
     private Long userId;
     private String account;
+    private String name;
     private String password;
     private String gender;
     private LocalDate birthDate;

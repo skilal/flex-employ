@@ -14,14 +14,21 @@ public interface OnDutyWorkerMapper {
                         +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, w.social_security_base AS socialSecurityBase, "
                         +
-                        "u.account AS userName, p.position_name AS positionName " +
+                        "COALESCE(u.name, u.account) AS userName, p.position_name AS positionName, c.company_name AS laborCompanyName, cp.company_name AS salaryPayerName, "
+                        +
+                        "COALESCE(resp.name, resp.account) AS responsibleName, resp.phone AS responsiblePhone, sc.base_rate AS baseRate, sc.pay_cycle AS payCycle "
+                        +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
+                        "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
+                        "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
+                        "LEFT JOIN user resp ON p.responsible_id = resp.user_id " +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE 1=1 " +
                         "<if test='workerStatus != null and workerStatus != \"\"'> AND w.worker_status = #{workerStatus} </if>"
                         +
-                        "<if test='userName != null and userName != \"\"'> AND u.account LIKE CONCAT('%', #{userName}, '%') </if>"
+                        "<if test='userName != null and userName != \"\"'> AND (u.account LIKE CONCAT('%', #{userName}, '%') OR u.name LIKE CONCAT('%', #{userName}, '%')) </if>"
                         +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +
@@ -38,9 +45,16 @@ public interface OnDutyWorkerMapper {
                         +
                         "p.working_days AS workingDays, p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, "
                         +
-                        "w.social_security_base AS socialSecurityBase " +
+                        "w.social_security_base AS socialSecurityBase, c.company_name AS laborCompanyName, cp.company_name AS salaryPayerName, "
+                        +
+                        "COALESCE(resp.name, resp.account) AS responsibleName, resp.phone AS responsiblePhone, sc.base_rate AS baseRate, sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod "
+                        +
                         "FROM on_duty_worker w " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
+                        "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
+                        "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
+                        "LEFT JOIN user resp ON p.responsible_id = resp.user_id " +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE w.user_id = #{userId} " +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +

@@ -162,6 +162,13 @@ public class AttendanceService {
 
         LocalDate yesterday = LocalDate.now().minusDays(1);
 
+        // 检查岗位薪资发放主体
+        com.skilal.flex_employ.entity.Position position = positionMapper.findById(worker.getPositionId());
+        if (position != null && position.getSalaryPayerId() != null) {
+            // 如果非人力公司发放薪资，则不参与系统考勤记录生成
+            return;
+        }
+
         // 仅检查昨天是否已有记录
         if (attendanceMapper.countByWorkerAndDate(worker.getOnDutyWorkerId(), yesterday) == 0) {
             Attendance attendance = new Attendance();

@@ -55,7 +55,8 @@
     <el-card>
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="userId" label="用户ID" width="100" />
-        <el-table-column prop="account" label="账号" width="150" />
+        <el-table-column prop="account" label="账号" width="120" />
+        <el-table-column prop="name" label="姓名" width="120" />
         <el-table-column prop="gender" label="性别" width="80">
           <template #default="{ row }">
             {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '未知' }}
@@ -111,6 +112,9 @@
       >
         <el-form-item label="账号" prop="account">
           <el-input v-model="form.account" placeholder="请输入账号" />
+        </el-form-item>
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="form.name" placeholder="请输入真实姓名" />
         </el-form-item>
 
         <el-form-item label="密码" :prop="dialogTitle === '新增用户' ? 'password' : ''">
@@ -204,6 +208,7 @@ const submitLoading = ref(false)
 const form = reactive({
   userId: null,
   account: '',
+  name: '',
   password: '',
   gender: 'M',
   birthDate: '',
@@ -271,6 +276,7 @@ const handleAdd = () => {
   Object.assign(form, {
     userId: null,
     account: '',
+    name: '',
     password: '',
     gender: 'M',
     birthDate: '',
@@ -288,6 +294,7 @@ const handleEdit = (row) => {
   Object.assign(form, {
     userId: row.userId,
     account: row.account,
+    name: row.name,
     password: '',
     gender: row.gender,
     birthDate: row.birthDate,

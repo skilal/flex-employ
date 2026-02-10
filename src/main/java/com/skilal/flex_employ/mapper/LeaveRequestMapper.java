@@ -8,13 +8,13 @@ import java.util.List;
 public interface LeaveRequestMapper {
 
         @Select("<script>" +
-                        "SELECT l.*, u.account AS userName, p.position_name AS positionName " +
+                        "SELECT l.*, COALESCE(u.name, u.account) AS userName, p.position_name AS positionName " +
                         "FROM leave_request l " +
                         "LEFT JOIN user u ON l.user_id = u.user_id " +
                         "LEFT JOIN position p ON l.position_id = p.position_id " +
                         "WHERE 1=1 " +
                         "<if test='status != null and status != \"\"'> AND l.status = #{status} </if>" +
-                        "<if test='userName != null and userName != \"\"'> AND u.account LIKE CONCAT('%', #{userName}, '%') </if>"
+                        "<if test='userName != null and userName != \"\"'> AND (u.account LIKE CONCAT('%', #{userName}, '%') OR u.name LIKE CONCAT('%', #{userName}, '%')) </if>"
                         +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +
@@ -25,7 +25,7 @@ public interface LeaveRequestMapper {
                         @Param("positionName") String positionName);
 
         @Select("<script>" +
-                        "SELECT l.*, u.account AS userName, p.position_name AS positionName " +
+                        "SELECT l.*, COALESCE(u.name, u.account) AS userName, p.position_name AS positionName " +
                         "FROM leave_request l " +
                         "LEFT JOIN user u ON l.user_id = u.user_id " +
                         "LEFT JOIN position p ON l.position_id = p.position_id " +

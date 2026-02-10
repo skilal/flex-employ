@@ -25,8 +25,9 @@ public interface UserMapper {
         @Select("SELECT * FROM user WHERE user_id = #{userId}")
         User findById(Long userId);
 
-        @Insert("INSERT INTO user (account, password, gender, birth_date, phone, bank_card, role, account_status) " +
-                        "VALUES (#{account}, #{password}, #{gender}, #{birthDate}, #{phone}, #{bankCard}, #{role}, #{accountStatus})")
+        @Insert("INSERT INTO user (account, name, password, gender, birth_date, phone, bank_card, role, account_status) "
+                        +
+                        "VALUES (#{account}, #{name}, #{password}, #{gender}, #{birthDate}, #{phone}, #{bankCard}, #{role}, #{accountStatus})")
         @Options(useGeneratedKeys = true, keyProperty = "userId")
         int insert(User user);
 
@@ -34,6 +35,7 @@ public interface UserMapper {
                         "UPDATE user " +
                         "<set>" +
                         "  <if test='account != null'> account = #{account}, </if>" +
+                        "  <if test='name != null'> name = #{name}, </if>" +
                         "  <if test='password != null and password != \"\"'> password = #{password}, </if>" +
                         "  <if test='gender != null'> gender = #{gender}, </if>" +
                         "  <if test='birthDate != null'> birth_date = #{birthDate}, </if>" +

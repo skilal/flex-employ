@@ -15,11 +15,11 @@ public interface PositionMapper {
                         "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
                         "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
                         +
-                        "sc.overtime_weekend_multiplier AS overtimeWeekendMultiplier, sc.overtime_holiday_multiplier AS overtimeHolidayMultiplier, "
-                        +
-                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name, cp.company_name AS salaryPayerName, COALESCE(u.name, u.account) AS responsibleName, u.phone AS responsiblePhone FROM position p "
                         +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
+                        "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
+                        "LEFT JOIN user u ON p.responsible_id = u.user_id " +
                         "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE 1=1 " +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
@@ -43,11 +43,11 @@ public interface PositionMapper {
                         "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
                         "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
                         +
-                        "sc.overtime_weekend_multiplier AS overtimeWeekendMultiplier, sc.overtime_holiday_multiplier AS overtimeHolidayMultiplier, "
-                        +
-                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name FROM position p "
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, c.company_name, cp.company_name AS salaryPayerName, COALESCE(u.name, u.account) AS responsibleName, u.phone AS responsiblePhone FROM position p "
                         +
                         "LEFT JOIN company c ON p.labor_company_id = c.company_id " +
+                        "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
+                        "LEFT JOIN user u ON p.responsible_id = u.user_id " +
                         "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE p.position_status = 1 ORDER BY p.created_at DESC")
         List<Position> findRecruiting();
@@ -59,20 +59,22 @@ public interface PositionMapper {
                         "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
                         "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
                         +
-                        "sc.overtime_weekend_multiplier AS overtimeWeekendMultiplier, sc.overtime_holiday_multiplier AS overtimeHolidayMultiplier, "
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, p.salary_payer_id AS salaryPayerId, cp.company_name AS salaryPayerName, COALESCE(u.name, u.account) AS responsibleName, u.phone AS responsiblePhone FROM position p "
                         +
-                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions FROM position p "
-                        +
+                        "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
+                        "LEFT JOIN user u ON p.responsible_id = u.user_id " +
                         "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE position_id = #{positionId}")
         Position findById(Long positionId);
 
         @Insert("INSERT INTO position (position_name, work_location, region_code, duty_desc, work_start_time, " +
-                        "work_end_time, employment_type, labor_company_id, salary_config_id, salary_desc, " +
+                        "work_end_time, employment_type, labor_company_id, salary_payer_id, salary_config_id, salary_desc, "
+                        +
                         "daily_hours, weekly_freq, working_days, check_in_time, check_out_time, position_status, responsible_id, special_note, creator_id, total_positions, remaining_positions) "
                         +
                         "VALUES (#{positionName}, #{workLocation}, #{regionCode}, #{dutyDesc}, #{workStartTime}, " +
-                        "#{workEndTime}, #{employmentType}, #{laborCompanyId}, #{salaryConfigId}, #{salaryDesc}, " +
+                        "#{workEndTime}, #{employmentType}, #{laborCompanyId}, #{salaryPayerId}, #{salaryConfigId}, #{salaryDesc}, "
+                        +
                         "#{dailyHours}, #{weeklyFreq}, #{workingDays}, #{checkInTime}, #{checkOutTime}, #{positionStatus}, #{responsibleId}, #{specialNote}, #{creatorId}, #{totalPositions}, #{remainingPositions})")
         @Options(useGeneratedKeys = true, keyProperty = "positionId")
         int insert(Position position);
@@ -81,7 +83,8 @@ public interface PositionMapper {
                         "region_code = #{regionCode}, duty_desc = #{dutyDesc}, work_start_time = #{workStartTime}, " +
                         "work_end_time = #{workEndTime}, employment_type = #{employmentType}, labor_company_id = #{laborCompanyId}, "
                         +
-                        "salary_config_id = #{salaryConfigId}, salary_desc = #{salaryDesc}, " +
+                        "salary_payer_id = #{salaryPayerId}, salary_config_id = #{salaryConfigId}, salary_desc = #{salaryDesc}, "
+                        +
                         "daily_hours = #{dailyHours}, weekly_freq = #{weeklyFreq}, working_days = #{workingDays}, " +
                         "check_in_time = #{checkInTime}, check_out_time = #{checkOutTime}, position_status = #{positionStatus}, "
                         +

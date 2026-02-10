@@ -9,7 +9,7 @@ import java.util.List;
 public interface AttendanceMapper {
 
         @Select("<script>" +
-                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "SELECT a.*, COALESCE(u.name, u.account) AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
                         "IFNULL(p.working_days, '(未设定)') AS workingDays " +
@@ -21,7 +21,7 @@ public interface AttendanceMapper {
                         "<if test='attendanceDate != null'> AND a.attendance_date = #{attendanceDate} </if>" +
                         "<if test='attendanceStatus != null and attendanceStatus != \"\"'> AND a.attendance_status = #{attendanceStatus} </if>"
                         +
-                        "<if test='userName != null and userName != \"\"'> AND u.account LIKE CONCAT('%', #{userName}, '%') </if>"
+                        "<if test='userName != null and userName != \"\"'> AND (u.account LIKE CONCAT('%', #{userName}, '%') OR u.name LIKE CONCAT('%', #{userName}, '%')) </if>"
                         +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +
@@ -33,7 +33,7 @@ public interface AttendanceMapper {
                         @Param("positionName") String positionName);
 
         @Select("<script>" +
-                        "SELECT a.*, u.account AS userName, p.position_name AS positionName, " +
+                        "SELECT a.*, COALESCE(u.name, u.account) AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
                         "IFNULL(p.working_days, '(未设定)') AS workingDays " +

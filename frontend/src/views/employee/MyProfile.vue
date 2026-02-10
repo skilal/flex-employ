@@ -17,6 +17,9 @@
             <el-form-item label="账号">
               <el-input v-model="basicForm.account" disabled />
             </el-form-item>
+            <el-form-item label="姓名" prop="name">
+              <el-input v-model="basicForm.name" placeholder="请输入您的真实姓名" />
+            </el-form-item>
 
             <el-form-item label="角色">
               <el-input v-model="basicForm.role" disabled />
@@ -24,8 +27,8 @@
 
             <el-form-item label="性别" prop="gender">
               <el-radio-group v-model="basicForm.gender">
-                <el-radio label="男">男</el-radio>
-                <el-radio label="女">女</el-radio>
+                <el-radio label="M">男</el-radio>
+                <el-radio label="F">女</el-radio>
               </el-radio-group>
             </el-form-item>
 
@@ -128,6 +131,7 @@ const basicLoading = ref(false)
 const basicForm = reactive({
   userId: null,
   account: '',
+  name: '',
   role: '',
   gender: '',
   birthDate: '',
@@ -193,6 +197,7 @@ const handleUpdateBasicInfo = async () => {
       basicLoading.value = true
       try {
         await updateUserInfo(basicForm.userId, {
+          name: basicForm.name,
           gender: basicForm.gender,
           birthDate: basicForm.birthDate,
           phone: basicForm.phone,

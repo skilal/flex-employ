@@ -29,9 +29,31 @@
 
       <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%">
         <el-table-column prop="onDutyWorkerId" label="记录ID" width="80" />
-        <el-table-column prop="positionName" label="岗位名称" show-overflow-tooltip />
-        <el-table-column prop="checkInTime" label="上班时间" width="110" />
-        <el-table-column prop="checkOutTime" label="下班时间" width="110" />
+        <el-table-column prop="positionName" label="岗位名称" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="laborCompanyName" label="用工单位" min-width="120" show-overflow-tooltip />
+        <el-table-column label="责任方" min-width="120" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-tag v-if="row.salaryPayerName" type="warning" size="small" effect="plain">{{ row.salaryPayerName }}</el-tag>
+            <el-tag v-else type="info" size="small" effect="plain">人力服务公司</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="薪资标准/周期" width="140">
+          <template #default="{ row }">
+            <div style="font-weight: bold; color: #f56c6c">¥{{ row.baseRate }}/{{ row.billingMethod === 1 ? '时' : '天' }}</div>
+            <el-tag size="small" type="info" effect="plain">{{ row.payCycle }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="负责人/电话" width="150">
+          <template #default="{ row }">
+            <div>{{ row.responsibleName || '管理员' }}</div>
+            <div style="font-size: 12px; color: #909399">{{ row.responsiblePhone || '-' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="打卡时段" width="130">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">{{ row.checkInTime ? row.checkInTime.substring(0,5) : '-' }} - {{ row.checkOutTime ? row.checkOutTime.substring(0,5) : '-' }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="hireDate" label="入职日期" width="110" />
         <el-table-column prop="leaveDate" label="离职日期" width="110" />
         <el-table-column label="状态" width="90">
@@ -66,15 +88,19 @@
     <el-dialog v-model="scheduleVisible" title="排班信息" width="600px">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="岗位名称">{{ currentRow.positionName }}</el-descriptions-item>
-        <el-descriptions-item label="岗位状态">{{ currentRow.workerStatus }}</el-descriptions-item>
-        <el-descriptions-item label="打卡上班时间">{{ currentRow.checkInTime }}</el-descriptions-item>
-        <el-descriptions-item label="打卡下班时间">{{ currentRow.checkOutTime }}</el-descriptions-item>
+        <el-descriptions-item label="岗位状态">
+          <el-tag :type="!currentRow.leaveDate ? 'success' : 'info'">{{ !currentRow.leaveDate ? '在岗' : '已结束' }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="用工单位">{{ currentRow.laborCompanyName }}</el-descriptions-item>
+        <el-descriptions-item label="联系责任方">{{ currentRow.salaryPayerName || '人力服务公司' }}</el-descriptions-item>
+        <el-descriptions-item label="岗位负责人">{{ currentRow.responsibleName || '管理员' }}</el-descriptions-item>
+        <el-descriptions-item label="负责人电话">{{ currentRow.responsiblePhone || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="打卡时间">{{ currentRow.checkInTime }} - {{ currentRow.checkOutTime }}</el-descriptions-item>
+        <el-descriptions-item label="结算周期">{{ currentRow.payCycle }}</el-descriptions-item>
         <el-descriptions-item label="入职日期">{{ currentRow.hireDate }}</el-descriptions-item>
         <el-descriptions-item label="离职日期">{{ currentRow.leaveDate || '暂无' }}</el-descriptions-item>
-        <el-descriptions-item label="计费方式">
-          <el-tag size="small" :type="currentRow.billingMethod === 1 ? 'warning' : 'success'">
-            {{ currentRow.billingMethod === 1 ? '按小时计费' : '按天计费' }}
-          </el-tag>
+        <el-descriptions-item label="计费标准">
+          <span style="color: #f56c6c; font-weight: bold;">¥{{ currentRow.baseRate }} / {{ currentRow.billingMethod === 1 ? '小时' : '天' }}</span>
         </el-descriptions-item>
         <el-descriptions-item label="加班费">
           {{ currentRow.overtimePay ? `¥${currentRow.overtimePay}/时` : '无加班费' }}
