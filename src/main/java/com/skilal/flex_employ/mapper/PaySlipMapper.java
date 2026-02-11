@@ -94,4 +94,13 @@ public interface PaySlipMapper {
 
         @Delete("DELETE FROM pay_slip WHERE pay_record_id = #{payRecordId}")
         int delete(Long payRecordId);
+
+        @Select("SELECT COUNT(*) FROM pay_slip WHERE on_duty_worker_id = #{workerId} AND (actual_payment_date IS NOT NULL)")
+        int countSettledByWorkerId(Long workerId);
+
+        @Select("SELECT COUNT(*) FROM pay_slip WHERE on_duty_worker_id = #{workerId} " +
+                        "AND pay_record_id != #{excludeId} " +
+                        "AND cycle_start <= #{end} AND cycle_end >= #{start}")
+        int countOverlappingRecords(@Param("workerId") Long workerId, @Param("start") LocalDate start,
+                        @Param("end") LocalDate end, @Param("excludeId") Long excludeId);
 }

@@ -2,7 +2,7 @@
   <div class="login-container">
     <el-card class="login-card">
       <template #header>
-        <h2>灵活用工平台 - 登录</h2>
+        <h2>人力服务公司薪资结算平台<br>账号登录</h2>
       </template>
       
       <el-form

@@ -55,4 +55,10 @@ public interface ApplicationMapper {
 
         @Delete("DELETE FROM application WHERE application_id = #{applicationId}")
         int delete(Long applicationId);
+
+        @Select("SELECT COUNT(*) FROM application WHERE position_id = #{positionId} AND status = '已申请'")
+        int countUnprocessedByPositionId(Long positionId);
+
+        @Select("SELECT COUNT(*) FROM application WHERE user_id = #{userId} AND position_id = #{positionId}")
+        int countByUserIdAndPositionId(@Param("userId") Long userId, @Param("positionId") Long positionId);
 }

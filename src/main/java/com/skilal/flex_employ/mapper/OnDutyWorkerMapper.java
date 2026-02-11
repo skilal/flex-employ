@@ -95,4 +95,10 @@ public interface OnDutyWorkerMapper {
 
         @Select("SELECT * FROM on_duty_worker WHERE worker_status = '在岗'")
         List<OnDutyWorker> findAllActive();
+
+        @Select("SELECT COUNT(*) FROM on_duty_worker WHERE user_id = #{userId}")
+        int countByUserId(Long userId);
+
+        @Select("SELECT COUNT(*) FROM on_duty_worker WHERE position_id = #{positionId}")
+        int countByPositionId(Long positionId);
 }

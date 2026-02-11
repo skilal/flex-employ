@@ -345,9 +345,14 @@ const qrPositionName = ref('')
 
 const handleShowQR = (row) => {
   qrPositionName.value = row.positionName
-  // 生成打卡链接，如: http://domain/punch/123
+  // 生成带验证令牌的打卡链接，确保只能通过扫码访问
+  // 令牌包含：岗位ID + 当前日期 + 内部密钥（Base64混淆）
+  const today = new Date().toISOString().split('T')[0]
+  const secret = 'flex_punch_2024'
+  const token = btoa(`${row.positionId}-${today}-${secret}`)
+  
   const origin = window.location.origin
-  qrCodeValue.value = `${origin}/punch/${row.positionId}`
+  qrCodeValue.value = `${origin}/punch/${row.positionId}?token=${token}`
   qrDialogVisible.value = true
 }
 

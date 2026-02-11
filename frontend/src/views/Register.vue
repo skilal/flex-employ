@@ -2,7 +2,7 @@
   <div class="register-container">
     <el-card class="register-card">
       <template #header>
-        <h2>灵活用工平台 - 注册</h2>
+        <h2>人力服务公司薪资结算平台<br>账号注册</h2>
       </template>
       
       <el-form

@@ -162,6 +162,21 @@ public class ApplicationController {
     public Result<String> approveApplication(@PathVariable Long id, @RequestBody Map<String, Object> data) {
         String status = (String) data.get("status");
 
+        // 如果是通过操作，必须检查名额
+        if ("已通过".equals(status)) {
+            Application app = applicationMapper.findById(id);
+            if (app == null)
+                return Result.error("申请不存在");
+
+            com.skilal.flex_employ.entity.Position pos = positionMapper.findById(app.getPositionId());
+            if (pos == null)
+                return Result.error("岗位不存在");
+
+            if (pos.getRemainingPositions() != null && pos.getRemainingPositions() <= 0) {
+                return Result.error("审批失败：该岗位招聘名额已满");
+            }
+        }
+
         // 更新申请状态
         int result = applicationMapper.updateStatus(id, status);
         if (result <= 0) {

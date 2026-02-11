@@ -31,4 +31,7 @@ public interface CompanyMapper {
 
         @Delete("DELETE FROM company WHERE company_id = #{companyId}")
         int delete(Long companyId);
+
+        @Select("SELECT COUNT(*) FROM company WHERE company_name = #{companyName} AND company_id != #{companyId}")
+        int countByName(@Param("companyName") String companyName, @Param("companyId") Long companyId);
 }

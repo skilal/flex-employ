@@ -121,6 +121,25 @@ public class AttendanceController {
     public Result<String> qrPunch(@RequestBody Map<String, Object> data, @RequestHeader("Authorization") String token) {
         Long positionId = Long.valueOf(data.get("positionId").toString());
         String punchType = (String) data.get("punchType"); // check-in 或 check-out
+        String qrToken = (String) data.get("qrToken");
+
+        // 核心安全校验：验证二维码令牌是否合法且未过期
+        if (qrToken == null) {
+            return Result.error("打卡失败：未检测到考勤码信息，请扫描二维码打卡");
+        }
+
+        try {
+            String today = java.time.LocalDate.now().toString();
+            String secret = "flex_punch_2024";
+            String expectedContent = positionId + "-" + today + "-" + secret;
+            String decodedToken = new String(java.util.Base64.getDecoder().decode(qrToken));
+
+            if (!expectedContent.equals(decodedToken)) {
+                return Result.error("打卡失败：考勤二维码无效或已过期");
+            }
+        } catch (Exception e) {
+            return Result.error("打卡失败：考勤码解析异常");
+        }
 
         token = token.replace("Bearer ", "");
         Long userId = jwtUtil.getUserIdFromToken(token);

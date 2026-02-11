@@ -158,6 +158,17 @@ router.beforeEach((to, from, next) => {
             }
             return
         }
+
+        // 核心安全校验：打卡页面必须携带 token（二维码校验）
+        if (to.name === 'PunchClock') {
+            const token = to.query.token
+            if (!token) {
+                console.warn('访问打卡页面未携带验证令牌，拦截跳转')
+                ElMessage.warning('请通过扫描岗位生成的二维码进入打卡页面')
+                next('/employee')
+                return
+            }
+        }
     }
 
     // 如果已登录，访问登录页，则跳转到对应角色首页

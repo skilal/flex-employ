@@ -60,9 +60,27 @@ public class UserController {
         return Result.error("更新失败");
     }
 
+    @Autowired
+    private com.skilal.flex_employ.mapper.OnDutyWorkerMapper onDutyWorkerMapper;
+
+    @Autowired
+    private com.skilal.flex_employ.util.JwtUtil jwtUtil;
+
     // 删除用户（管理员）
     @DeleteMapping("/{id}")
-    public Result<String> deleteUser(@PathVariable Long id) {
+    public Result<String> deleteUser(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+        // 1. 禁止删除自己
+        token = token.replace("Bearer ", "");
+        Long currentUserId = jwtUtil.getUserIdFromToken(token);
+        if (id.equals(currentUserId)) {
+            return Result.error("删除失败：无法删除当前登录账户");
+        }
+
+        // 2. 检查是否存在在岗记录
+        if (onDutyWorkerMapper.countByUserId(id) > 0) {
+            return Result.error("删除失败：该用户存在历史在岗或当前在岗记录，无法删除");
+        }
+
         int result = userMapper.delete(id);
         if (result > 0) {
             return Result.success("删除成功");

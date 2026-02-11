@@ -53,6 +53,16 @@ public class SalaryController {
 
     @PostMapping
     public Result<String> createSalary(@RequestBody PaySlip paySlip) {
+        // 1. 周期重叠校验
+        int overlapCount = paySlipMapper.countOverlappingRecords(
+                paySlip.getOnDutyWorkerId(),
+                paySlip.getCycleStart(),
+                paySlip.getCycleEnd(),
+                0L); // 新增记录不排除任何ID
+        if (overlapCount > 0) {
+            return Result.error("创建失败：该员工在所选周期内已存在重叠的薪资记录");
+        }
+
         // 自动计算最晚支付日期
         if (paySlip.getCycleEnd() != null) {
             paySlip.setDeadlineDate(
@@ -65,8 +75,24 @@ public class SalaryController {
 
     @PutMapping("/{id}")
     public Result<String> updateSalary(@PathVariable Long id, @RequestBody PaySlip paySlip) {
-        paySlip.setPayRecordId(id);
+        // 1. 检查状态：已结算的记录禁止修改
+        PaySlip exist = paySlipMapper.findById(id);
+        if (exist != null && exist.getActualPaymentDate() != null) {
+            return Result.error("更新失败：该薪资记录已发放，不可编辑");
+        }
 
+        // 2. 周期重叠校验（排除自身）
+        int overlapCount = paySlipMapper.countOverlappingRecords(
+                paySlip.getOnDutyWorkerId(),
+                paySlip.getCycleStart(),
+                paySlip.getCycleEnd(),
+                id);
+        if (overlapCount > 0) {
+            return Result.error("更新失败：修改后的周期与该员工其他薪资记录存在重叠");
+        }
+
+        paySlip.setPayRecordId(id);
+        // ... 原有逻辑
         // 自动计算最晚支付日期
         if (paySlip.getCycleEnd() != null) {
             paySlip.setDeadlineDate(
@@ -99,6 +125,12 @@ public class SalaryController {
 
     @DeleteMapping("/{id}")
     public Result<String> deleteSalary(@PathVariable Long id) {
+        // 1. 检查状态：已结算的记录禁止删除
+        PaySlip exist = paySlipMapper.findById(id);
+        if (exist != null && exist.getActualPaymentDate() != null) {
+            return Result.error("删除失败：该薪资记录已发放，不可删除");
+        }
+
         int result = paySlipMapper.delete(id);
         if (result > 0) {
             return Result.success("删除成功");

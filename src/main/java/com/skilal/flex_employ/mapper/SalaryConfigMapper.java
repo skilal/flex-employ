@@ -78,4 +78,7 @@ public interface SalaryConfigMapper {
 
         @Delete("DELETE FROM salary_config WHERE config_id = #{id}")
         int delete(Long id);
+
+        @Select("SELECT COUNT(*) FROM salary_config WHERE config_name = #{configName} AND config_id != #{configId}")
+        int countByName(@Param("configName") String configName, @Param("configId") Long configId);
 }

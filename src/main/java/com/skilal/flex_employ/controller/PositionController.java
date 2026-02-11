@@ -55,8 +55,24 @@ public class PositionController {
         return Result.error("更新失败");
     }
 
+    @Autowired
+    private com.skilal.flex_employ.mapper.ApplicationMapper applicationMapper;
+
+    @Autowired
+    private com.skilal.flex_employ.mapper.OnDutyWorkerMapper onDutyWorkerMapper;
+
     @DeleteMapping("/{id}")
     public Result<String> deletePosition(@PathVariable Long id) {
+        // 1. 检查是否存在未处理申请
+        if (applicationMapper.countUnprocessedByPositionId(id) > 0) {
+            return Result.error("删除失败：该岗位下存在未处理的调配申请，请先处理");
+        }
+
+        // 2. 检查是否存在在岗人员
+        if (onDutyWorkerMapper.countByPositionId(id) > 0) {
+            return Result.error("删除失败：该岗位当前已有在岗员工，无法删除");
+        }
+
         int result = positionMapper.delete(id);
         if (result > 0) {
             return Result.success("删除成功");

@@ -14,7 +14,7 @@ export const useUserStore = defineStore('user', () => {
         localStorage.removeItem('userInfo')
     }
 
-    const userInfo = ref(null)
+    const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
     const token = ref(['ADMIN', 'EMPLOYEE'].includes(storedRole) ? storedToken : '')
     const role = ref(['ADMIN', 'EMPLOYEE'].includes(storedRole) ? storedRole : '')
 
@@ -23,6 +23,7 @@ export const useUserStore = defineStore('user', () => {
         userInfo.value = info
         role.value = info.role
         localStorage.setItem('role', info.role)
+        localStorage.setItem('userInfo', JSON.stringify(info))
     }
 
     // 设置 token

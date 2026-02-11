@@ -49,7 +49,7 @@ public interface PositionMapper {
                         "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
                         "LEFT JOIN user u ON p.responsible_id = u.user_id " +
                         "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
-                        "WHERE p.position_status = 1 ORDER BY p.created_at DESC")
+                        "WHERE p.remaining_positions > 0 AND p.position_status != 0 ORDER BY p.created_at DESC")
         List<Position> findRecruiting();
 
         @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
@@ -94,8 +94,20 @@ public interface PositionMapper {
         @Delete("DELETE FROM position WHERE position_id = #{positionId}")
         int delete(Long positionId);
 
+        @Select("SELECT COUNT(*) FROM position WHERE labor_company_id = #{companyId} OR salary_payer_id = #{companyId}")
+        int countByCompanyId(Long companyId);
+
+        @Select("SELECT COUNT(*) FROM position WHERE salary_config_id = #{configId}")
+        int countBySalaryConfigId(Long configId);
+
         @Update("UPDATE position SET remaining_positions = remaining_positions - 1 WHERE position_id = #{positionId} AND remaining_positions > 0")
         int decreaseRemainingPositions(Long positionId);
+
+        @Update("UPDATE position SET remaining_positions = remaining_positions + 1 WHERE position_id = #{positionId} AND remaining_positions < total_positions")
+        int increaseRemainingPositions(Long positionId);
+
+        @Update("UPDATE position SET position_status = 1 WHERE position_id = #{positionId} AND position_status = 2")
+        int openPosition(Long positionId);
 
         @Update("UPDATE position SET position_status = 2 WHERE position_id = #{positionId}")
         int closePosition(Long positionId);

@@ -48,7 +48,7 @@
     <el-dialog v-model="submitVisible" title="提交申请" width="500px">
       <el-form :model="submitForm" label-width="100px">
         <el-form-item label="申请岗位">{{ selectedPosition?.positionName }}</el-form-item>
-        <el-form-item label="简历文件" required>
+        <el-form-item label="简历文件">
           <el-upload
             ref="uploadRef"
             action="/api/applications/upload"
@@ -239,10 +239,6 @@ const handleUploadError = () => {
 }
 
 const confirmSubmit = async () => {
-  if (!submitForm.resumePdfPath) {
-    return ElMessage.warning('请先上传 PDF 简历')
-  }
-
   submitting.value = true
   try {
     await request({

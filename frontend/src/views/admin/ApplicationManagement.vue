@@ -256,8 +256,8 @@ const handleApprove = (row, status) => {
         ElMessage.success('拒绝成功')
         loadData()
       } catch (error) {
-        console.error('拒绝失败:', error)
-        ElMessage.error('拒绝失败')
+        const msg = error.response?.data?.message || '拒绝操作失败'
+        ElMessage.error(msg)
       }
     }).catch(() => {})
   }
@@ -277,8 +277,8 @@ const handleApproveSubmit = () => {
         approveVisible.value = false
         loadData()
       } catch (error) {
-        console.error('审批失败:', error)
-        ElMessage.error('审批失败')
+        const msg = error.response?.data?.message || '审批通过操作失败'
+        ElMessage.error(msg)
       } finally {
         approveLoading.value = false
       }

@@ -96,11 +96,18 @@ const fetchPositionInfo = async () => {
 }
 
 const handlePunch = async (type) => {
+  const token = route.query.token
+  if (!token) {
+    ElMessage.error('无效的访问，请扫描二维码进入')
+    return
+  }
+
   loading.value = true
   try {
     const res = await qrPunch({
       positionId: positionId,
-      punchType: type
+      punchType: type,
+      qrToken: token // 传给后端进行安全性校验
     })
     ElMessage({
       message: res.data || (type === 'check-in' ? '签到成功' : '签退成功'),
@@ -110,7 +117,7 @@ const handlePunch = async (type) => {
     })
   } catch (error) {
     console.error('打卡操作失败:', error)
-    ElMessage.error(error.response?.data?.message || '打卡失败，请稍后重试')
+    ElMessage.error(error.response?.data?.message || '打卡失败，请检查二维码是否已过期')
   } finally {
     loading.value = false
   }
