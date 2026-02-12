@@ -222,8 +222,8 @@
         <el-divider>管理与备注信息</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="行政区域代码" prop="regionCode">
-              <el-input v-model="form.regionCode" placeholder="如 310100" />
+            <el-form-item label="工作地点" prop="workLocation">
+              <el-input v-model="form.workLocation" placeholder="详细工作地点" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -316,7 +316,6 @@ let form = reactive({
   positionId: null,
   positionName: '',
   workLocation: '',
-  regionCode: '310100',
   dutyDesc: '',
   employmentType: '全日制用工',
   laborCompanyId: null,
@@ -374,6 +373,7 @@ watch(() => form.workingDaysArray, (newDays) => {
 
 const rules = {
   positionName: [{ required: true, message: '必填项', trigger: 'blur' }],
+  workLocation: [{ required: true, message: '必填项', trigger: 'blur' }],
   laborCompanyId: [{ required: true, message: '必选项', trigger: 'change' }],
   salaryConfigId: [{ required: true, message: '请关联薪资模版', trigger: 'change' }],
   employmentType: [{ required: true, message: '必选项', trigger: 'change' }]
@@ -437,7 +437,6 @@ const handleAdd = () => {
     responsibleId: 1,
     salaryDesc: '',
     specialNote: '',
-    regionCode: '310100',
     salaryPayerId: null
   })
   dialogFormVisible.value = true

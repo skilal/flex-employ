@@ -72,7 +72,7 @@ public interface PositionMapper {
                         +
                         "daily_hours, weekly_freq, working_days, check_in_time, check_out_time, position_status, responsible_id, special_note, creator_id, total_positions, remaining_positions) "
                         +
-                        "VALUES (#{positionName}, #{workLocation}, #{regionCode}, #{dutyDesc}, #{workStartTime}, " +
+                        "VALUES (#{positionName}, #{workLocation}, '', #{dutyDesc}, #{workStartTime}, " +
                         "#{workEndTime}, #{employmentType}, #{laborCompanyId}, #{salaryPayerId}, #{salaryConfigId}, #{salaryDesc}, "
                         +
                         "#{dailyHours}, #{weeklyFreq}, #{workingDays}, #{checkInTime}, #{checkOutTime}, #{positionStatus}, #{responsibleId}, #{specialNote}, #{creatorId}, #{totalPositions}, #{remainingPositions})")
@@ -80,7 +80,7 @@ public interface PositionMapper {
         int insert(Position position);
 
         @Update("UPDATE position SET position_name = #{positionName}, work_location = #{workLocation}, " +
-                        "region_code = #{regionCode}, duty_desc = #{dutyDesc}, work_start_time = #{workStartTime}, " +
+                        "region_code = '', duty_desc = #{dutyDesc}, work_start_time = #{workStartTime}, " +
                         "work_end_time = #{workEndTime}, employment_type = #{employmentType}, labor_company_id = #{laborCompanyId}, "
                         +
                         "salary_payer_id = #{salaryPayerId}, salary_config_id = #{salaryConfigId}, salary_desc = #{salaryDesc}, "
