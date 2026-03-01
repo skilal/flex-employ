@@ -5,13 +5,19 @@ import com.skilal.flex_employ.entity.Application;
 import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.ApplicationMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
+import com.skilal.flex_employ.util.AliOssUtil;
 import com.skilal.flex_employ.util.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +44,8 @@ public class ApplicationController {
 
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private AliOssUtil ossUtil;
 
     @GetMapping
     public Result<List<Application>> getApplications(@RequestParam(required = false) String status,
@@ -227,18 +235,20 @@ public class ApplicationController {
 
     @PostMapping("/upload")
     public Result<String> uploadResume(@RequestParam("file") MultipartFile file) {
+
         if (file.isEmpty()) {
             return Result.error("请选择要上传的文件");
         }
 
         try {
             // 确保上传目录存在
-            String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "resumes"
-                    + File.separator;
-            File dir = new File(uploadDir);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
+            // String uploadDir = System.getProperty("user.dir") + File.separator +
+            // "uploads" + File.separator + "resumes"
+            // + File.separator;
+            // File dir = new File(uploadDir);
+            // if (!dir.exists()) {
+            // dir.mkdirs();
+            // }
 
             // 生成唯一文件名
             String originalFilename = file.getOriginalFilename();
@@ -246,19 +256,56 @@ public class ApplicationController {
             if (originalFilename != null && originalFilename.contains(".")) {
                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
-            String fileName = UUID.randomUUID().toString() + extension;
-
-            // 保存文件
-            Path filePath = Paths.get(uploadDir + fileName);
-            Files.write(filePath, file.getBytes());
-
-            // 返回前端可访问的相对路径
-            return Result.success("/uploads/resumes/" + fileName);
-        } catch (IOException e) {
+            // String fileName = UUID.randomUUID().toString() + extension;
+            //
+            // // 保存文件
+            // Path filePath = Paths.get(uploadDir + fileName);
+            // Files.write(filePath, file.getBytes());
+            //
+            // // 返回前端可访问的相对路径
+            // return Result.success("/uploads/resumes/" + fileName);
+            // } catch (IOException e) {
+            String objectName = "resumes/" + UUID.randomUUID() + extension;
+            // 调用 OSS 工具类上传并返回访问 URL
+            String url = ossUtil.upload(file.getInputStream(), objectName);
+            return Result.success(url);
+        } catch (Exception e) {
             log.error("简历上传失败", e);
             return Result.error("简历上传失败: " + e.getMessage());
         }
     }
+
+    // ==================== OSS PDF 代理预览接口 ====================
+    // 背景：OSS 默认域名因安全策略强制添加 Content-Disposition: attachment 和
+    // x-oss-force-download: true，导致浏览器触发下载而非在线预览。
+    // 方案：由后端从 OSS 拉取文件流，以 Content-Disposition: inline 转发给浏览器，
+    // 绕过 OSS 的强制下载限制。
+    // 回退方案：若不再需要代理，前端 handleViewResume 改回直接 window.open(ossUrl, '_blank') 即可。
+    @GetMapping("/preview-resume")
+    public void previewResume(@RequestParam String url, HttpServletResponse response) {
+        try {
+            // 从 OSS 拉取文件流（Bucket 为公共读，可直接 HTTP 访问）
+            URL ossUrl = new URL(url);
+            HttpURLConnection conn = (HttpURLConnection) ossUrl.openConnection();
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(30000);
+            conn.connect();
+
+            // 设置响应头：inline 告知浏览器在页面内预览，而非触发下载
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "inline");
+
+            // 将 OSS 文件流直接透传给浏览器
+            try (InputStream in = conn.getInputStream();
+                    OutputStream out = response.getOutputStream()) {
+                in.transferTo(out);
+            }
+        } catch (Exception e) {
+            log.error("PDF 代理预览失败: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+    // ==================== 代理预览接口 END ====================
 
     @DeleteMapping("/{id}")
     public Result<String> deleteApplication(@PathVariable Long id) {
