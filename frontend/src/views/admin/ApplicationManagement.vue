@@ -299,21 +299,9 @@ const handleView = (row) => {
 
 const handleViewResume = (path) => {
   if (path) {
-    // ========== 原方案（直接打开 OSS URL）==========
-    // 原因：OSS 安全策略强制 Content-Disposition: attachment，浏览器会触发下载而非预览。
-    // 回退方式：注释掉下方代理方案，取消注释此行即可。
-    // window.open(path, '_blank')
-    // ========== 原方案 END ==========
-
-    // ========== 当前方案（后端代理预览）==========
-    // 通过后端 /api/applications/preview-resume 接口中转，
-    // 后端去掉 OSS 强制下载头后以 inline 形式返回 PDF，实现在线预览。
-    const previewUrl = `/api/applications/preview-resume?url=${encodeURIComponent(path)}`
-    window.open(previewUrl, '_blank')
-    // ========== 代理方案 END ==========
+    window.open(path, '_blank')
   }
 }
-
 
 // 删除
 const handleDelete = (row) => {

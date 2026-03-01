@@ -1,9 +1,10 @@
 package com.skilal.flex_employ.controller;
 
+import com.aliyun.oss.AliOssUtil;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.User;
 import com.skilal.flex_employ.mapper.UserMapper;
-import com.skilal.flex_employ.util.AliOssUtil;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,13 +13,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 //测试阿里云oss
-import com.skilal.flex_employ.util.AliOssUtil;
+
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 public class TestController {
 
-//测试阿里云oss
+    @Autowired
+    private com.aliyun.oss.AliOssUtil aliOssUtil;
+
+
+    @GetMapping("/test/oss-bean")
+    public Result<String> testOssBean() {
+        // 只要能返回成功，说明 Bean 被 Spring 自动装配了
+        return Result.success("AliOssUtil Bean 注入成功: " + aliOssUtil.getClass().getName());
+    }
+    //测试阿里云oss
     @PostMapping("/test/oss-upload")
     public Result<String> testOssUpload(@RequestParam("file") MultipartFile file) {
         try {

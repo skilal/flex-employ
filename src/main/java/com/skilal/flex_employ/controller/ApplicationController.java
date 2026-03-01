@@ -5,7 +5,7 @@ import com.skilal.flex_employ.entity.Application;
 import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.ApplicationMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
-import com.skilal.flex_employ.util.AliOssUtil;
+import com.aliyun.oss.AliOssUtil;
 import com.skilal.flex_employ.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class ApplicationController {
     @Autowired
     private JwtUtil jwtUtil;
     @Autowired
-    private AliOssUtil ossUtil;
+    private AliOssUtil ossUtil; // 来自 aliyun-oss-spring-boot-starter 自动装配
 
     @GetMapping
     public Result<List<Application>> getApplications(@RequestParam(required = false) String status,
