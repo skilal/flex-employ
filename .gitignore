@@ -45,3 +45,6 @@ REGISTER_FIX.md
 frontend/node_modules/
 frontend/dist/
 frontend/.vscode/
+
+
+src/main/java/com/skilal/flex_employ/flex_employ.code-workspace
