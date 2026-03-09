@@ -133,6 +133,7 @@ public class AuthController {
 
             Map<String, Object> data = new HashMap<>();
             data.put("accessToken", newAccessToken);
+            log.info("生成新AT");
             return Result.success(data);
         } catch (Exception e) {
             log.error("刷新令牌失败", e);

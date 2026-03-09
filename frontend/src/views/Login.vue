@@ -85,8 +85,10 @@ const handleLogin = async () => {
         const res = await login(loginForm)
         console.log('登录响应:', res)
         
-        // 保存 token
-        userStore.setToken(res.data.token)
+        // 保存 token（后端返回字段名为 accessToken）
+        userStore.setToken(res.data.accessToken)
+        // 保存 refreshToken
+        userStore.setRefreshToken(res.data.refreshToken)
         
         // 获取用户信息
         const userRes = await getCurrentUser()

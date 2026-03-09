@@ -5,17 +5,20 @@ export const useUserStore = defineStore('user', () => {
     // 初始化时检查并清理无效的角色数据
     const storedRole = localStorage.getItem('role') || ''
     const storedToken = localStorage.getItem('token') || ''
+    const storedRefreshToken = localStorage.getItem('refreshToken') || ''
 
     // 如果角色是中文（旧数据），自动清除所有登录信息
     if (storedRole && !['ADMIN', 'EMPLOYEE'].includes(storedRole)) {
         console.warn('检测到无效的角色数据，已自动清除:', storedRole)
         localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
         localStorage.removeItem('role')
         localStorage.removeItem('userInfo')
     }
 
     const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
     const token = ref(['ADMIN', 'EMPLOYEE'].includes(storedRole) ? storedToken : '')
+    const refreshToken = ref(['ADMIN', 'EMPLOYEE'].includes(storedRole) ? storedRefreshToken : '')
     const role = ref(['ADMIN', 'EMPLOYEE'].includes(storedRole) ? storedRole : '')
 
     // 设置用户信息
@@ -32,12 +35,20 @@ export const useUserStore = defineStore('user', () => {
         localStorage.setItem('token', newToken)
     }
 
+    // 设置 refreshToken
+    const setRefreshToken = (newRefreshToken) => {
+        refreshToken.value = newRefreshToken
+        localStorage.setItem('refreshToken', newRefreshToken)
+    }
+
     // 登出
     const logout = () => {
         userInfo.value = null
         token.value = ''
+        refreshToken.value = ''
         role.value = ''
         localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
         localStorage.removeItem('userInfo')
         localStorage.removeItem('role')
     }
@@ -55,9 +66,11 @@ export const useUserStore = defineStore('user', () => {
     return {
         userInfo,
         token,
+        refreshToken,
         role,
         setUserInfo,
         setToken,
+        setRefreshToken,
         logout,
         isLoggedIn,
         isAdmin
