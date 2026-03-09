@@ -22,6 +22,9 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> loginData) {
         log.info("收到登录请求：{}", loginData.get("account"));
@@ -57,11 +60,20 @@ public class AuthController {
             return Result.error("账号已被禁用");
         }
 
-        String token = jwtUtil.generateToken(user.getUserId(), user.getAccount(), user.getRole());
-        log.info("登录成功，生成token：{}", token.substring(0, 20) + "...");
+        // 生成双 Token
+        String accessToken = jwtUtil.generateAccessToken(user.getUserId(), user.getAccount(), user.getRole());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUserId(), user.getAccount(), user.getRole());
+
+        // 将 Refresh Token 存入 Redis，Key: user:login:userId, Value: refreshToken, 有效期 7 天
+        String redisKey = "user:login:" + user.getUserId();
+        redisTemplate.opsForValue().set(redisKey, refreshToken, 7, java.util.concurrent.TimeUnit.DAYS);
+
+        log.info("登录成功，userId: {}, AT: {}..., RT: {}...", user.getUserId(), accessToken.substring(0, 10),
+                refreshToken.substring(0, 10));
 
         Map<String, Object> data = new HashMap<>();
-        data.put("token", token);
+        data.put("accessToken", accessToken);
+        data.put("refreshToken", refreshToken);
         data.put("userId", user.getUserId());
         data.put("account", user.getAccount());
         data.put("role", user.getRole());
@@ -97,8 +109,50 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/refresh")
+    public Result<Map<String, Object>> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || !jwtUtil.validateToken(refreshToken)) {
+            return Result.error("无效或已过期的刷新令牌，请重新登录");
+        }
+
+        try {
+            Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+            String redisKey = "user:login:" + userId;
+            String storedToken = redisTemplate.opsForValue().get(redisKey);
+
+            // 校验 Redis 中是否存在且一致
+            if (storedToken == null || !storedToken.equals(refreshToken)) {
+                return Result.error("刷新令牌已失效，请重新登录");
+            }
+
+            // 生成新的 Access Token
+            String account = jwtUtil.parseToken(refreshToken).getSubject();
+            String role = jwtUtil.getRoleFromToken(refreshToken);
+            String newAccessToken = jwtUtil.generateAccessToken(userId, account, role);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("accessToken", newAccessToken);
+            return Result.success(data);
+        } catch (Exception e) {
+            log.error("刷新令牌失败", e);
+            return Result.error("刷新令牌失败");
+        }
+    }
+
     @PostMapping("/logout")
-    public Result<String> logout() {
+    public Result<String> logout(@RequestHeader(value = "Authorization", required = false) String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                String jwt = token.substring(7);
+                Long userId = jwtUtil.getUserIdFromToken(jwt);
+                // 清除 Redis 中的刷新令牌
+                redisTemplate.delete("user:login:" + userId);
+                log.info("用户 {} 已退出登录并清除 Redis 凭证", userId);
+            } catch (Exception e) {
+                log.warn("退出登录处理异常: {}", e.getMessage());
+            }
+        }
         return Result.success("退出登录成功");
     }
 }

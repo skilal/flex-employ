@@ -19,15 +19,32 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
-    private Long expiration;
+    @Value("${jwt.access-token-expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private Long refreshTokenExpiration;
 
     private Key getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(Long userId, String account, String role) {
+    /**
+     * 生成访问令牌 (Access Token)
+     */
+    public String generateAccessToken(Long userId, String account, String role) {
+        return generateToken(userId, account, role, accessTokenExpiration);
+    }
+
+    /**
+     * 生成刷新令牌 (Refresh Token)
+     */
+    public String generateRefreshToken(Long userId, String account, String role) {
+        return generateToken(userId, account, role, refreshTokenExpiration);
+    }
+
+    private String generateToken(Long userId, String account, String role, Long expiration) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("account", account);

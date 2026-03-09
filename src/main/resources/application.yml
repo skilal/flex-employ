@@ -9,6 +9,17 @@ spring:
     username: root
     password: 666666
 
+  data:
+    redis:
+      host: 172.21.162.142
+      port: 6379
+      password: 666666
+      lettuce:
+        pool:
+          max-active: 8   # 最大连接数
+          max-idle: 8     # 最大空闲连接数
+          min-idle: 0     # 最小空闲连接数
+          max-wait: 100ms # 连接等待时间，推荐带上单位（ms/s/m等）
   # 文件上传配置
   servlet:
     multipart:
@@ -16,7 +27,7 @@ spring:
       max-request-size: 10MB
 
 # MyBatis 配置
-mybatis:
+mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.skilal.flex_employ.entity
   configuration:
@@ -25,7 +36,10 @@ mybatis:
 # JWT 配置
 jwt:
   secret: FlexEmploySecretKeyForJWT2026ShouldBeLongEnoughForHS256Algorithm
-  expiration: 86400000
+  # 访问令牌过期时间（Access Token）：30分钟 (30 * 60 * 1000)
+  access-token-expiration: 1800000
+  # 刷新令牌过期时间（Refresh Token）：7天 (7 * 24 * 60 * 60 * 1000)
+  refresh-token-expiration: 604800000
 
 aliyun:
   oss:

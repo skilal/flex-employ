@@ -249,7 +249,6 @@ public class ApplicationController {
             // if (!dir.exists()) {
             // dir.mkdirs();
             // }
-
             // 生成唯一文件名
             String originalFilename = file.getOriginalFilename();
             String extension = "";
