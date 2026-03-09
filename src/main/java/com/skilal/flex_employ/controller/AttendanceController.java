@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.Attendance;
 import com.skilal.flex_employ.mapper.AttendanceMapper;
@@ -28,6 +30,7 @@ public class AttendanceController {
     @Autowired
     private com.skilal.flex_employ.mapper.OnDutyWorkerMapper onDutyWorkerMapper;
 
+    @CheckRole(Role.ADMIN)
     @GetMapping
     public Result<List<Attendance>> getAttendances(@RequestParam(required = false) LocalDate attendanceDate,
             @RequestParam(required = false) String attendanceStatus,
@@ -38,6 +41,7 @@ public class AttendanceController {
         return Result.success(attendances);
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @GetMapping("/my")
     public Result<List<Attendance>> getMyAttendances(@RequestHeader("Authorization") String token,
             @RequestParam(required = false) LocalDate startDate,
@@ -48,6 +52,7 @@ public class AttendanceController {
         return Result.success(attendances);
     }
 
+    @CheckRole(Role.ADMIN)
     @PostMapping
     public Result<String> createAttendance(@RequestBody Attendance attendance) {
         // 检查是否已经存在该日期的考勤记录
@@ -75,6 +80,7 @@ public class AttendanceController {
         return Result.error("创建失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @PutMapping("/{id}")
     public Result<String> updateAttendance(@PathVariable Long id, @RequestBody Attendance attendance) {
         attendance.setAttendanceId(id);
@@ -105,6 +111,7 @@ public class AttendanceController {
         return Result.error("更新失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{id}")
     public Result<String> deleteAttendance(@PathVariable Long id) {
         int result = attendanceMapper.delete(id);
@@ -117,6 +124,7 @@ public class AttendanceController {
     /**
      * 二维码扫码打卡接口
      */
+    @CheckRole(Role.EMPLOYEE)
     @PostMapping("/qr-punch")
     public Result<String> qrPunch(@RequestBody Map<String, Object> data, @RequestHeader("Authorization") String token) {
         Long positionId = Long.valueOf(data.get("positionId").toString());

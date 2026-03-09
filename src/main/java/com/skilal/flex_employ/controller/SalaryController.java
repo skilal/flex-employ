@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.PaySlip;
 import com.skilal.flex_employ.mapper.PaySlipMapper;
@@ -25,6 +27,7 @@ public class SalaryController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @CheckRole(Role.ADMIN)
     @GetMapping
     public Result<List<PaySlip>> getSalaries(
             @RequestParam(required = false) String userName,
@@ -36,21 +39,25 @@ public class SalaryController {
         return Result.success(salaries);
     }
 
+    @CheckRole(Role.ADMIN)
     @GetMapping("/suggest-cycle")
     public Result<Map<String, LocalDate>> getSuggestedCycle(@RequestParam Long onDutyWorkerId) {
         return Result.success(salaryService.getSuggestedCycle(onDutyWorkerId));
     }
 
+    @CheckRole(Role.ADMIN)
     @GetMapping("/deadline")
     public Result<LocalDate> getDeadline(@RequestParam Long onDutyWorkerId, @RequestParam String cycleEnd) {
         return Result.success(salaryService.calculateDeadlineDate(onDutyWorkerId, LocalDate.parse(cycleEnd)));
     }
 
+    @CheckRole(Role.ADMIN)
     @GetMapping("/{id}")
     public Result<PaySlip> getById(@PathVariable Long id) {
         return Result.success(paySlipMapper.findById(id));
     }
 
+    @CheckRole(Role.ADMIN)
     @PostMapping
     public Result<String> createSalary(@RequestBody PaySlip paySlip) {
         // 1. 周期重叠校验
@@ -73,6 +80,7 @@ public class SalaryController {
         return Result.success("薪资记录补录成功");
     }
 
+    @CheckRole(Role.ADMIN)
     @PutMapping("/{id}")
     public Result<String> updateSalary(@PathVariable Long id, @RequestBody PaySlip paySlip) {
         // 1. 检查状态：已结算的记录禁止修改
@@ -103,6 +111,7 @@ public class SalaryController {
         return Result.success("更新成功");
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @GetMapping("/my")
     public Result<List<PaySlip>> getMySalaries(
             @RequestParam(required = false) String positionName,
@@ -117,12 +126,14 @@ public class SalaryController {
     }
 
     // 手动触发全员薪资自动生成引擎
+    @CheckRole(Role.ADMIN)
     @PostMapping("/generate")
     public Result<String> triggerGenerate() {
         salaryService.autoGeneratePaySlips();
         return Result.success("薪资自动结算任务已启动");
     }
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{id}")
     public Result<String> deleteSalary(@PathVariable Long id) {
         // 1. 检查状态：已结算的记录禁止删除

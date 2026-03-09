@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.LeaveRequest;
 import com.skilal.flex_employ.entity.OnDutyWorker;
@@ -25,6 +27,7 @@ public class LeaveController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @CheckRole(Role.ADMIN)
     @GetMapping
     public Result<List<LeaveRequest>> getLeaves(@RequestParam(required = false) String status,
             @RequestParam(required = false) String userName,
@@ -33,6 +36,7 @@ public class LeaveController {
         return Result.success(leaves);
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @GetMapping("/my")
     public Result<List<LeaveRequest>> getMyLeaves(
             @RequestParam(required = false) String leaveType,
@@ -44,6 +48,7 @@ public class LeaveController {
         return Result.success(leaves);
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @PostMapping
     public Result<String> createLeave(@RequestBody LeaveRequest leaveRequest,
             @RequestHeader("Authorization") String token) {
@@ -79,6 +84,7 @@ public class LeaveController {
         return Result.error("请假申请提交失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @PutMapping("/{id}/approve")
     public Result<String> approveLeave(@PathVariable Long id, @RequestBody Map<String, String> data) {
         String status = data.get("status");
@@ -89,6 +95,7 @@ public class LeaveController {
         return Result.error("审批失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{id}")
     public Result<String> deleteLeave(@PathVariable Long id) {
         int result = leaveRequestMapper.delete(id);

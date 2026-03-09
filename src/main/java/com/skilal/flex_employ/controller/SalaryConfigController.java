@@ -3,11 +3,14 @@ package com.skilal.flex_employ.controller;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.SalaryConfig;
 import com.skilal.flex_employ.mapper.SalaryConfigMapper;
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CheckRole(Role.ADMIN)
 @RestController
 @RequestMapping("/api/salary-configs")
 public class SalaryConfigController {

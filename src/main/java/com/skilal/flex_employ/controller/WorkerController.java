@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
@@ -19,6 +21,7 @@ public class WorkerController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @CheckRole(Role.ADMIN)
     @GetMapping
     public Result<List<OnDutyWorker>> getWorkers(@RequestParam(required = false) String workerStatus,
             @RequestParam(required = false) String userName,
@@ -27,6 +30,7 @@ public class WorkerController {
         return Result.success(workers);
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @GetMapping("/my")
     public Result<List<OnDutyWorker>> getMyWorkerRecord(
             @RequestParam(required = false) String positionName,
@@ -38,6 +42,7 @@ public class WorkerController {
         return Result.success(workers);
     }
 
+    @CheckRole(Role.ADMIN)
     @PostMapping
     public Result<String> createWorker(@RequestBody OnDutyWorker worker) {
         // 1. 检查是否已经在该岗位在岗
@@ -67,6 +72,7 @@ public class WorkerController {
         return Result.error("添加失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @PutMapping("/{id}")
     public Result<String> updateWorker(@PathVariable Long id, @RequestBody OnDutyWorker worker) {
         OnDutyWorker oldWorker = workerMapper.findById(id);
@@ -100,6 +106,7 @@ public class WorkerController {
     @Autowired
     private com.skilal.flex_employ.mapper.PaySlipMapper paySlipMapper;
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{id}")
     public Result<String> deleteWorker(@PathVariable Long id) {
         OnDutyWorker worker = workerMapper.findById(id);

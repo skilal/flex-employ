@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.HolidayCalendar;
 import com.skilal.flex_employ.mapper.HolidayCalendarMapper;
@@ -16,18 +18,21 @@ public class HolidayController {
     @Autowired
     private HolidayCalendarMapper holidayMapper;
 
+    @CheckRole({ Role.ADMIN, Role.EMPLOYEE })
     @GetMapping
     public Result<List<HolidayCalendar>> getHolidays(@RequestParam String start, @RequestParam String end) {
         List<HolidayCalendar> holidays = holidayMapper.findInRange(LocalDate.parse(start), LocalDate.parse(end));
         return Result.success(holidays);
     }
 
+    @CheckRole(Role.ADMIN)
     @PostMapping
     public Result<String> saveHoliday(@RequestBody HolidayCalendar holiday) {
         holidayMapper.save(holiday);
         return Result.success("保存成功");
     }
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{date}")
     public Result<String> deleteHoliday(@PathVariable String date) {
         holidayMapper.delete(LocalDate.parse(date));

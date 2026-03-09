@@ -3,12 +3,15 @@ package com.skilal.flex_employ.controller;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.User;
 import com.skilal.flex_employ.mapper.UserMapper;
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@CheckRole(Role.ADMIN)
 @RestController
 @RequestMapping("/api/users")
 public class UserController {

@@ -3,11 +3,14 @@ package com.skilal.flex_employ.controller;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.Company;
 import com.skilal.flex_employ.mapper.CompanyMapper;
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CheckRole(Role.ADMIN)
 @RestController
 @RequestMapping("/api/companies")
 public class CompanyController {

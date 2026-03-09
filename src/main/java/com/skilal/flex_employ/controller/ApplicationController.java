@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.Application;
 import com.skilal.flex_employ.entity.OnDutyWorker;
@@ -47,6 +49,7 @@ public class ApplicationController {
     @Autowired
     private AliOssUtil ossUtil; // 来自 aliyun-oss-spring-boot-starter 自动装配
 
+    @CheckRole(Role.ADMIN)
     @GetMapping
     public Result<List<Application>> getApplications(@RequestParam(required = false) String status,
             @RequestParam(required = false) String userName,
@@ -55,6 +58,7 @@ public class ApplicationController {
         return Result.success(applications);
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @GetMapping("/my")
     public Result<List<Application>> getMyApplications(@RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
@@ -152,6 +156,7 @@ public class ApplicationController {
                 "message", "无时间冲突"));
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @PostMapping
     public Result<String> createApplication(@RequestBody Application application,
             @RequestHeader("Authorization") String token) {
@@ -166,6 +171,7 @@ public class ApplicationController {
         return Result.error("申请提交失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @PutMapping("/{id}/approve")
     public Result<String> approveApplication(@PathVariable Long id, @RequestBody Map<String, Object> data) {
         String status = (String) data.get("status");
@@ -233,6 +239,7 @@ public class ApplicationController {
         return Result.success("审批成功");
     }
 
+    @CheckRole(Role.EMPLOYEE)
     @PostMapping("/upload")
     public Result<String> uploadResume(@RequestParam("file") MultipartFile file) {
 
@@ -280,6 +287,7 @@ public class ApplicationController {
     // 方案：由后端从 OSS 拉取文件流，以 Content-Disposition: inline 转发给浏览器，
     // 绕过 OSS 的强制下载限制。
     // 回退方案：若不再需要代理，前端 handleViewResume 改回直接 window.open(ossUrl, '_blank') 即可。
+    @CheckRole({ Role.ADMIN, Role.EMPLOYEE })
     @GetMapping("/preview-resume")
     public void previewResume(@RequestParam String url, HttpServletResponse response) {
         try {
@@ -306,6 +314,7 @@ public class ApplicationController {
     }
     // ==================== 代理预览接口 END ====================
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{id}")
     public Result<String> deleteApplication(@PathVariable Long id) {
         int result = applicationMapper.delete(id);

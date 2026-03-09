@@ -1,5 +1,7 @@
 package com.skilal.flex_employ.controller;
 
+import com.skilal.flex_employ.common.CheckRole;
+import com.skilal.flex_employ.common.Role;
 import com.skilal.flex_employ.common.Result;
 import com.skilal.flex_employ.entity.Position;
 import com.skilal.flex_employ.mapper.PositionMapper;
@@ -36,6 +38,7 @@ public class PositionController {
         return Result.success(position);
     }
 
+    @CheckRole(Role.ADMIN)
     @PostMapping
     public Result<String> createPosition(@RequestBody Position position) {
         int result = positionMapper.insert(position);
@@ -45,6 +48,7 @@ public class PositionController {
         return Result.error("创建失败");
     }
 
+    @CheckRole(Role.ADMIN)
     @PutMapping("/{id}")
     public Result<String> updatePosition(@PathVariable Long id, @RequestBody Position position) {
         position.setPositionId(id);
@@ -61,6 +65,7 @@ public class PositionController {
     @Autowired
     private com.skilal.flex_employ.mapper.OnDutyWorkerMapper onDutyWorkerMapper;
 
+    @CheckRole(Role.ADMIN)
     @DeleteMapping("/{id}")
     public Result<String> deletePosition(@PathVariable Long id) {
         // 1. 检查是否存在未处理申请
