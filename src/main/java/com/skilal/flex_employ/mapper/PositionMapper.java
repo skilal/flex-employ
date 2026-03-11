@@ -59,7 +59,7 @@ public interface PositionMapper {
                         "sc.pay_cycle AS payCycle, sc.billing_method AS billingMethod, sc.base_rate AS baseRate, " +
                         "sc.has_overtime_pay AS hasOvertimePay, sc.overtime_weekday_multiplier AS overtimeWeekdayMultiplier, "
                         +
-                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, p.salary_payer_id AS salaryPayerId, cp.company_name AS salaryPayerName, COALESCE(u.name, u.account) AS responsibleName, u.phone AS responsiblePhone FROM position p "
+                        "p.total_positions AS totalPositions, p.remaining_positions AS remainingPositions, p.version, p.salary_payer_id AS salaryPayerId, cp.company_name AS salaryPayerName, COALESCE(u.name, u.account) AS responsibleName, u.phone AS responsiblePhone FROM position p "
                         +
                         "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
                         "LEFT JOIN user u ON p.responsible_id = u.user_id " +
@@ -100,8 +100,13 @@ public interface PositionMapper {
         @Select("SELECT COUNT(*) FROM position WHERE salary_config_id = #{configId}")
         int countBySalaryConfigId(Long configId);
 
-        @Update("UPDATE position SET remaining_positions = remaining_positions - 1 WHERE position_id = #{positionId} AND remaining_positions > 0")
-        int decreaseRemainingPositions(Long positionId);
+        /**
+         * 乐观锁扣减名额：仅当 version 匹配时才更新，同时自增 version
+         * 返回影响行数：0=并发冲突或名额为0；1=成功
+         */
+        @Update("UPDATE position SET remaining_positions = remaining_positions - 1, version = version + 1 " +
+                        "WHERE position_id = #{positionId} AND remaining_positions > 0 AND version = #{version}")
+        int decreaseRemainingPositions(@Param("positionId") Long positionId, @Param("version") Integer version);
 
         @Update("UPDATE position SET remaining_positions = remaining_positions + 1 WHERE position_id = #{positionId} AND remaining_positions < total_positions")
         int increaseRemainingPositions(Long positionId);

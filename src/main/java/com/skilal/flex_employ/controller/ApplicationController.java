@@ -172,6 +172,7 @@ public class ApplicationController {
     }
 
     @CheckRole(Role.ADMIN)
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     @PutMapping("/{id}/approve")
     public Result<String> approveApplication(@PathVariable Long id, @RequestBody Map<String, Object> data) {
         String status = (String) data.get("status");
@@ -199,44 +200,50 @@ public class ApplicationController {
 
         // 如果审批通过，创建在岗员工记录
         if ("已通过".equals(status)) {
-            try {
-                // 获取申请信息
-                Application application = applicationMapper.findById(id);
-                if (application == null) {
-                    return Result.error("申请不存在");
-                }
+            // 获取申请信息
+            Application application = applicationMapper.findById(id);
+            if (application == null) {
+                throw new com.skilal.flex_employ.common.BusinessException("申请不存在");
+            }
 
-                // 创建在岗员工记录
-                OnDutyWorker worker = new OnDutyWorker();
-                worker.setUserId(application.getUserId());
-                worker.setPositionId(application.getPositionId());
+            // 创建在岗员工记录
+            OnDutyWorker worker = new OnDutyWorker();
+            worker.setUserId(application.getUserId());
+            worker.setPositionId(application.getPositionId());
 
-                // 从请求中获取入职信息
-                String hireDateStr = (String) data.get("hireDate");
+            // 从请求中获取入职信息
+            String hireDateStr = (String) data.get("hireDate");
 
-                worker.setHireDate(LocalDate.parse(hireDateStr));
-                worker.setWorkerStatus("在岗"); // 设置在岗状态
+            worker.setHireDate(LocalDate.parse(hireDateStr));
+            worker.setWorkerStatus("在岗"); // 设置在岗状态
 
-                int workerResult = onDutyWorkerMapper.insert(worker);
-                if (workerResult <= 0) {
-                    return Result.error("创建在岗员工记录失败");
-                }
+            int workerResult = onDutyWorkerMapper.insert(worker);
+            if (workerResult <= 0) {
+                throw new com.skilal.flex_employ.common.BusinessException("创建在岗员工记录失败");
+            }
 
-                // 减少岗位剩余人数
-                positionMapper.decreaseRemainingPositions(application.getPositionId());
+            // 乐观锁扣减名额：重新读取最新 version
+            com.skilal.flex_employ.entity.Position position = positionMapper.findById(application.getPositionId());
+            if (position == null) {
+                throw new com.skilal.flex_employ.common.BusinessException("岗位数据异常");
+            }
+            int decreased = positionMapper.decreaseRemainingPositions(
+                    application.getPositionId(), position.getVersion());
+            if (decreased <= 0) {
+                // version 不匹配说明有并发请求已占用，触发回滚刚才更新的 application 状态和新增的 worker
+                throw new com.skilal.flex_employ.common.BusinessException("审批失败：该岗位名额已被其他操作占用，请重试");
+            }
 
-                // 检查剩余人数，如果为0则关闭岗位
-                com.skilal.flex_employ.entity.Position position = positionMapper.findById(application.getPositionId());
-                if (position != null && position.getRemainingPositions() != null
-                        && position.getRemainingPositions() <= 0) {
-                    positionMapper.closePosition(application.getPositionId());
-                }
-            } catch (Exception e) {
-                return Result.error("处理入职信息失败: " + e.getMessage());
+            // 检查剩余人数，如果为0则关闭岗位
+            com.skilal.flex_employ.entity.Position updated = positionMapper.findById(application.getPositionId());
+            if (updated != null && updated.getRemainingPositions() != null
+                    && updated.getRemainingPositions() <= 0) {
+                positionMapper.closePosition(application.getPositionId());
             }
         }
 
         return Result.success("审批成功");
+
     }
 
     @CheckRole(Role.EMPLOYEE)

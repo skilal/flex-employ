@@ -43,10 +43,13 @@ public class WorkerController {
     }
 
     @CheckRole(Role.ADMIN)
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     @PostMapping
-    public Result<String> createWorker(@RequestBody OnDutyWorker worker) {
+    public Result<String> addWorker(@RequestBody OnDutyWorker worker) {
         // 1. 检查是否已经在该岗位在岗
-        if (workerMapper.checkWorkerStatus(worker.getUserId(), worker.getPositionId()) > 0) {
+        OnDutyWorker existingWorker = workerMapper.findByUserIdAndPositionId(worker.getUserId(),
+                worker.getPositionId());
+        if (existingWorker != null && "在岗".equals(existingWorker.getWorkerStatus())) {
             return Result.error("添加失败：该员工已在该岗位处于“在岗”状态，请勿重复添加");
         }
 
@@ -59,8 +62,15 @@ public class WorkerController {
         deduceWorkerStatus(worker);
         int result = workerMapper.insert(worker);
         if (result > 0) {
-            // 扣减名额
-            positionMapper.decreaseRemainingPositions(worker.getPositionId());
+            com.skilal.flex_employ.entity.Position latestPos = positionMapper.findById(worker.getPositionId());
+            if (latestPos == null) {
+                throw new com.skilal.flex_employ.common.BusinessException("岗位数据异常");
+            }
+            int decreased = positionMapper.decreaseRemainingPositions(
+                    worker.getPositionId(), latestPos.getVersion());
+            if (decreased <= 0) {
+                throw new com.skilal.flex_employ.common.BusinessException("添加失败：该岗位名额已被其他操作占用，请重试");
+            }
             // 再次检查并决定是否变更为已满状态
             com.skilal.flex_employ.entity.Position updatedPos = positionMapper.findById(worker.getPositionId());
             if (updatedPos != null && updatedPos.getRemainingPositions() != null

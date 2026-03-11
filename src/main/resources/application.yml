@@ -37,7 +37,7 @@ mybatis-plus:
 jwt:
   secret: FlexEmploySecretKeyForJWT2026ShouldBeLongEnoughForHS256Algorithm
   # 访问令牌过期时间（Access Token）：30分钟 (30 * 60 * 1000)
-  access-token-expiration: 1800000
+  access-token-expiration: 18000000
   # 刷新令牌过期时间（Refresh Token）：7天 (7 * 24 * 60 * 60 * 1000)
   refresh-token-expiration: 604800000
 

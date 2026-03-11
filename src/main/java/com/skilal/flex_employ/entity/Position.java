@@ -30,6 +30,7 @@ public class Position {
     private String specialNote;
     private Integer totalPositions; // 招聘总人数
     private Integer remainingPositions; // 剩余招聘人数
+    private Integer version; // 乐观锁版本号
     private String workingDays; // 每周工作日，例如 "1,2,3,4,5" 代表周一至周五
     private LocalTime checkInTime; // 应签到时间
     private LocalTime checkOutTime; // 应签退时间
