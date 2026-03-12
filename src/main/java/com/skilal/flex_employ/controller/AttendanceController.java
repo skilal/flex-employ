@@ -194,9 +194,88 @@ public class AttendanceController {
                     worker.getOnDutyWorkerId(), today, attendance.getActualCheckIn(), attendance.getActualCheckOut()));
 
             int result = attendanceMapper.update(attendance);
-            return result > 0 ? Result.success("签退成功 (" + now.toString().substring(0, 5) + ")") : Result.error("签退失败");
+            if (result > 0) {
+                // 签退成功后同步标记到 Redis Bitmap 中供统计和防重检查使用
+                String yearMonth = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMM"));
+                String redisKey = "attendance:worker:" + worker.getOnDutyWorkerId() + ":" + yearMonth;
+                long offset = today.getDayOfMonth() - 1;
+                stringRedisTemplate.opsForValue().setBit(redisKey, offset, true);
+                stringRedisTemplate.expire(redisKey, 40, java.util.concurrent.TimeUnit.DAYS);
+                return Result.success("签退成功 (" + now.toString().substring(0, 5) + ")");
+            } else {
+                return Result.error("签退失败");
+            }
         }
 
         return Result.error("未知的打卡类型");
+    }
+
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private com.skilal.flex_employ.mapper.PositionMapper positionMapper;
+
+    @CheckRole(Role.ADMIN)
+    @PostMapping("/manual-sign")
+    public Result<String> manualSign(@RequestBody java.util.List<Long> workerIds) {
+        if (workerIds == null || workerIds.isEmpty()) {
+            return Result.error("请至少选择一名需要签到的员工");
+        }
+
+        LocalDate today = LocalDate.now();
+        String yearMonth = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMM"));
+        long offset = today.getDayOfMonth() - 1;
+
+        int successCount = 0;
+        int duplicateCount = 0;
+
+        for (Long workerId : workerIds) {
+            // 1. 获取员工
+            com.skilal.flex_employ.entity.OnDutyWorker worker = onDutyWorkerMapper.findById(workerId);
+            if (worker == null || !"在岗".equals(worker.getWorkerStatus())) {
+                continue; // 忽略异常状态的员工
+            }
+
+            // 2. Redis Bitmap 查重
+            String redisKey = "attendance:worker:" + workerId + ":" + yearMonth;
+            Boolean isSigned = stringRedisTemplate.opsForValue().getBit(redisKey, offset);
+            
+            if (Boolean.TRUE.equals(isSigned)) {
+                duplicateCount++;
+                continue; // 今日已签，直接跳过处理下一个
+            }
+
+            // 3. 构建数据
+            com.skilal.flex_employ.entity.Position position = positionMapper.findById(worker.getPositionId());
+            LocalTime checkIn = (position != null && position.getCheckInTime() != null) ? position.getCheckInTime() : LocalTime.of(9, 0);
+            LocalTime checkOut = (position != null && position.getCheckOutTime() != null) ? position.getCheckOutTime() : LocalTime.of(18, 0);
+
+            // 清理脏数据
+            Attendance existRec = attendanceMapper.findByWorkerAndDate(workerId, today);
+            if (existRec != null) {
+                attendanceMapper.delete(existRec.getAttendanceId());
+            }
+
+            Attendance newPunch = new Attendance();
+            newPunch.setOnDutyWorkerId(workerId);
+            newPunch.setPositionId(worker.getPositionId());
+            newPunch.setAttendanceDate(today);
+            newPunch.setActualCheckIn(checkIn);
+            newPunch.setActualCheckOut(checkOut);
+            newPunch.setInStatus("正常");
+            newPunch.setOutStatus("正常");
+            newPunch.setAttendanceStatus("正常");
+
+            // 4. 落库并高举 Bitmap 标志
+            attendanceMapper.insert(newPunch);
+            stringRedisTemplate.opsForValue().setBit(redisKey, offset, true);
+            stringRedisTemplate.expire(redisKey, 40, java.util.concurrent.TimeUnit.DAYS);
+            successCount++;
+        }
+
+        if (successCount == 0 && duplicateCount > 0) {
+            return Result.success("选中的员工今日均已签过到，已全部防止重复");
+        }
+        return Result.success(String.format("批量签到执行完成！成功签到 %d 人，过滤重复签到 %d 人", successCount, duplicateCount));
     }
 }

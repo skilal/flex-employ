@@ -47,16 +47,20 @@
     </el-card>
 
     <!-- 操作按钮 -->
-    <div class="action-buttons">
+    <div class="action-buttons" style="display: flex; gap: 10px;">
       <el-button type="primary" @click="handleAdd">
         <el-icon><Plus /></el-icon>
         新增在岗员工
+      </el-button>
+      <el-button type="success" :disabled="selectedWorkers.length === 0" @click="handleBatchSign">
+        批量一键签到 ({{ selectedWorkers.length }}人)
       </el-button>
     </div>
 
     <!-- 表格 -->
     <el-card>
-      <el-table :data="tableData" border stripe v-loading="loading">
+      <el-table :data="tableData" border stripe v-loading="loading" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="onDutyWorkerId" label="记录ID" width="100" />
         <el-table-column label="员工信息" width="150">
           <template #default="{ row }">
@@ -86,8 +90,16 @@
             <el-tag v-else type="warning">{{ row.workerStatus || '未知' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
+            <el-button 
+              v-if="row.workerStatus === '在岗'" 
+              size="small" 
+              type="success" 
+              @click="handleManualSign(row)"
+            >
+              一键签到
+            </el-button>
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -210,6 +222,7 @@ import { Search, Plus } from '@element-plus/icons-vue'
 import { getWorkers, createWorker, updateWorker, deleteWorker } from '../../api/worker'
 import { getUsers } from '../../api/user'
 import { getPositions } from '../../api/position'
+import request from '../../utils/request'
 
 const searchForm = reactive({
   userName: '',
@@ -224,6 +237,7 @@ const pageSize = ref(10)
 const total = ref(0)
 const users = ref([]) // 用户列表
 const positions = ref([]) // 岗位列表
+const selectedWorkers = ref([]) // 所有勾选的关联记录
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -342,6 +356,45 @@ const handleDelete = (row) => {
       ElMessage.error('删除失败')
     }
   }).catch(() => {})
+}
+
+// 供之前保留的一键签到(单行)及新增的批量签到共同调用的核心逻辑
+const executeSign = async (workerIds) => {
+  loading.value = true
+  try {
+    const res = await request.post('/attendances/manual-sign', workerIds)
+    if (res.code === 200) {
+      ElMessage.success(res.message || '签到/过滤执行完成')
+    } else {
+      ElMessage.error(res.message || '批量签到执行失败')
+    }
+  } catch (error) {
+    console.error('一键签到异常:', error)
+    ElMessage.error(error.message || '网络异常')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleManualSign = (row) => {
+  ElMessageBox.confirm(`确定要为员工【${row.userName}】进行今日的一键打卡补签吗？`, '一键代签 (Redis Bitmap)', {
+    confirmButtonText: '确定补签',
+    cancelButtonText: '取消',
+    type: 'success'
+  }).then(() => executeSign([row.onDutyWorkerId])).catch(() => {})
+}
+
+const handleSelectionChange = (val) => {
+  selectedWorkers.value = val
+}
+
+const handleBatchSign = () => {
+  const ids = selectedWorkers.value.map(w => w.onDutyWorkerId)
+  ElMessageBox.confirm(`确定要为选中的 ${ids.length} 名在岗员工批量一键打卡吗？`, '批量代签', {
+    confirmButtonText: '确认执行',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => executeSign(ids)).catch(() => {})
 }
 
 const handleSubmit = async () => {
