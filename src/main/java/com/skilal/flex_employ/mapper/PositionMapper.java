@@ -2,7 +2,7 @@ package com.skilal.flex_employ.mapper;
 
 import com.skilal.flex_employ.entity.Position;
 import org.apache.ibatis.annotations.*;
-import java.util.List;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 @Mapper
 public interface PositionMapper {
@@ -29,9 +29,9 @@ public interface PositionMapper {
                         "<if test='employmentType != null and employmentType != \"\"'> AND p.employment_type = #{employmentType} </if>"
                         +
                         "<if test='positionStatus != null'> AND p.position_status = #{positionStatus} </if>" +
-                        "ORDER BY p.created_at DESC" +
+                        "ORDER BY p.position_id ASC" +
                         "</script>")
-        List<Position> findAll(@Param("positionName") String positionName,
+        Page<Position> findAll(Page<Position> page, @Param("positionName") String positionName,
                         @Param("workLocation") String workLocation,
                         @Param("employmentType") String employmentType,
                         @Param("positionStatus") Integer positionStatus);
@@ -49,8 +49,8 @@ public interface PositionMapper {
                         "LEFT JOIN company cp ON p.salary_payer_id = cp.company_id " +
                         "LEFT JOIN user u ON p.responsible_id = u.user_id " +
                         "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
-                        "WHERE p.remaining_positions > 0 AND p.position_status != 0 ORDER BY p.created_at DESC")
-        List<Position> findRecruiting();
+                        "WHERE p.remaining_positions > 0 AND p.position_status != 0 ORDER BY p.position_id ASC")
+        Page<Position> findRecruiting(Page<Position> page);
 
         @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +

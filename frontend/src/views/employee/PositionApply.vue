@@ -186,7 +186,7 @@ const loadPositions = async () => {
       url: '/positions/recruiting',
       method: 'get'
     })
-    recruitingPositions.value = res.data || []
+    recruitingPositions.value = res.data.list || res.data || []
   } catch (error) {
     ElMessage.error('加载职位失败')
   } finally {

@@ -8,7 +8,11 @@ import com.skilal.flex_employ.mapper.PositionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/positions")
@@ -18,18 +22,37 @@ public class PositionController {
     private PositionMapper positionMapper;
 
     @GetMapping
-    public Result<List<Position>> getPositions(@RequestParam(required = false) String positionName,
+    public Result<Map<String, Object>> getPositions(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String positionName,
             @RequestParam(required = false) String workLocation,
             @RequestParam(required = false) String employmentType,
             @RequestParam(required = false) Integer positionStatus) {
-        List<Position> positions = positionMapper.findAll(positionName, workLocation, employmentType, positionStatus);
-        return Result.success(positions);
+        
+        Page<Position> page = new Page<>(pageNum, pageSize);
+        Page<Position> pageResult = positionMapper.findAll(page, positionName, workLocation, employmentType, positionStatus);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", pageResult.getRecords());
+        result.put("total", pageResult.getTotal());
+        
+        return Result.success(result);
     }
 
     @GetMapping("/recruiting")
-    public Result<List<Position>> getRecruitingPositions() {
-        List<Position> positions = positionMapper.findRecruiting();
-        return Result.success(positions);
+    public Result<Map<String, Object>> getRecruitingPositions(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        
+        Page<Position> page = new Page<>(pageNum, pageSize);
+        Page<Position> pageResult = positionMapper.findRecruiting(page);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", pageResult.getRecords());
+        result.put("total", pageResult.getTotal());
+        
+        return Result.success(result);
     }
 
     @GetMapping("/{id}")
@@ -72,7 +95,6 @@ public class PositionController {
         if (applicationMapper.countUnprocessedByPositionId(id) > 0) {
             return Result.error("删除失败：该岗位下存在未处理的调配申请，请先处理");
         }
-
         // 2. 检查是否存在在岗人员
         if (onDutyWorkerMapper.countByPositionId(id) > 0) {
             return Result.error("删除失败：该岗位当前已有在岗员工，无法删除");
