@@ -86,7 +86,7 @@
         </el-table-column>
         <el-table-column prop="applyTime" label="申请时间" width="180" />
         <el-table-column prop="approveTime" label="审批时间" width="180" />
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.status === '已申请'" size="small" type="success" @click="handleApprove(row, '已通过')">
               通过

@@ -7,9 +7,11 @@
           <el-input v-model="searchForm.positionName" placeholder="模糊搜索" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="用工类型">
-          <el-select v-model="searchForm.employmentType" placeholder="全部" clearable style="width: 150px">
+          <el-select v-model="searchForm.employmentType" placeholder="全部类型" clearable style="width: 150px" @change="handleSearch">
             <el-option label="全日制用工" value="全日制用工" />
             <el-option label="非全日制用工" value="非全日制用工" />
+            <el-option label="劳务派遣" value="劳务派遣" />
+            <el-option label="实习" value="实习" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -82,7 +84,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" plain @click="handleShowQR(row)">
               <el-icon><Iphone /></el-icon> 考勤码
@@ -119,6 +121,8 @@
               <el-select v-model="form.employmentType" placeholder="请选择类型" style="width: 100%">
                 <el-option label="全日制用工" value="全日制用工" />
                 <el-option label="非全日制用工" value="非全日制用工" />
+                <el-option label="劳务派遣" value="劳务派遣" />
+                <el-option label="实习" value="实习" />
               </el-select>
             </el-form-item>
           </el-col>

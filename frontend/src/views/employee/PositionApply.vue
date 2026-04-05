@@ -1,13 +1,39 @@
 <template>
   <div class="position-apply">
-    <!-- 头部横幅或筛选器 -->
+    <!-- 筛选栏 -->
     <el-card class="filter-card">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="岗位名称/地点" clearable />
+          <el-input v-model="searchForm.keyword" placeholder="岗位名称/职位" clearable style="width: 180px" @keyup.enter="handleFilter" />
+        </el-form-item>
+        <el-form-item label="工作地点">
+          <el-input v-model="searchForm.workLocation" placeholder="城市/地区" clearable style="width: 140px" @keyup.enter="handleFilter" />
+        </el-form-item>
+        <el-form-item label="用工类型">
+          <el-select v-model="searchForm.employmentType" placeholder="全部类型" clearable style="width: 130px" @change="handleFilter">
+            <el-option label="全日制用工" value="全日制用工" />
+            <el-option label="非全日制用工" value="非全日制用工" />
+            <el-option label="劳务派遣" value="劳务派遣" />
+            <el-option label="实习" value="实习" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="结算周期">
+          <el-select v-model="searchForm.payCycle" placeholder="全部周期" clearable style="width: 110px" @change="handleFilter">
+            <el-option label="日结" value="日结" />
+            <el-option label="周结" value="周结" />
+            <el-option label="15日结" value="15日结" />
+            <el-option label="月结" value="月结" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="计费方式">
+          <el-select v-model="searchForm.billingMethod" placeholder="全部" clearable style="width: 100px" @change="handleFilter">
+            <el-option label="按小时" :value="1" />
+            <el-option label="按天" :value="2" />
+          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleFilter">搜索职位</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -41,7 +67,21 @@
           </el-card>
         </el-col>
       </el-row>
-      <el-empty v-if="recruitingPositions.length === 0" description="暂无符合条件的招聘职位" />
+      <el-empty v-if="recruitingPositions.length === 0 && !loading" description="暂无符合条件的招聘职位" />
+
+      <!-- 分页 -->
+      <div style="margin-top: 24px; display: flex; justify-content: center;">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[12, 24, 48]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+          background
+        />
+      </div>
     </div>
 
     <!-- 申请提交对话框 -->
@@ -69,11 +109,11 @@
           </el-upload>
         </el-form-item>
         <el-form-item label="申请说明">
-          <el-input 
-            v-model="submitForm.applicationNote" 
-            type="textarea" 
-            :rows="4" 
-            placeholder="简要说明您的申请优势或期望..." 
+          <el-input
+            v-model="submitForm.applicationNote"
+            type="textarea"
+            :rows="4"
+            placeholder="简要说明您的申请优势或期望..."
           />
         </el-form-item>
       </el-form>
@@ -83,13 +123,14 @@
       </template>
     </el-dialog>
 
+    <!-- 职位详情对话框 -->
     <el-dialog v-model="detailVisible" title="职位详情" width="650px">
       <div v-if="selectedPosition" class="detail-container">
         <div class="job-title-row">
           <span class="job-name">{{ selectedPosition.positionName }}</span>
           <el-tag effect="dark">{{ selectedPosition.employmentType }}</el-tag>
         </div>
-        
+
         <el-descriptions :column="2" border class="m-t-20">
           <el-descriptions-item label="招聘单位" :span="2">{{ selectedPosition.companyName }}</el-descriptions-item>
           <el-descriptions-item label="劳动关系责任方" :span="2">
@@ -100,21 +141,21 @@
           <el-descriptions-item label="岗位负责人">{{ selectedPosition.responsibleName || '管理员' }}</el-descriptions-item>
           <el-descriptions-item label="联系电话">{{ selectedPosition.responsiblePhone || '-' }}</el-descriptions-item>
           <el-descriptions-item label="工作地点" :span="2">{{ selectedPosition.workLocation }}</el-descriptions-item>
-          
+
           <el-descriptions-item label="薪资标准">
             <span class="salary-highlight">¥{{ selectedPosition.baseRate }} / {{ selectedPosition.billingMethod === 1 ? '小时' : '天' }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="结算周期">
             <el-tag size="small" type="warning">{{ selectedPosition.payCycle }}</el-tag>
           </el-descriptions-item>
-          
+
           <el-descriptions-item label="工作时间">
             {{ selectedPosition.checkInTime }} ~ {{ selectedPosition.checkOutTime }}
           </el-descriptions-item>
           <el-descriptions-item label="每周工作日">
             {{ formatWorkingDays(selectedPosition.workingDays) }}
           </el-descriptions-item>
-          
+
           <el-descriptions-item label="招聘人数">
             <span :class="selectedPosition.remainingPositions > 0 ? 'text-success' : 'text-danger'">
               剩余 {{ selectedPosition.remainingPositions }} / 总 {{ selectedPosition.totalPositions }}
@@ -123,8 +164,8 @@
 
           <el-descriptions-item label="加班政策" :span="2">
             <template v-if="selectedPosition.hasOvertimePay === 1">
-              工作日 {{ selectedPosition.overtimeWeekdayMultiplier }}倍 / 
-              周末 {{ selectedPosition.overtimeWeekendMultiplier }}倍 / 
+              工作日 {{ selectedPosition.overtimeWeekdayMultiplier }}倍 /
+              周末 {{ selectedPosition.overtimeWeekendMultiplier }}倍 /
               节假日 {{ selectedPosition.overtimeHolidayMultiplier }}倍
             </template>
             <el-tag v-else type="info" size="small">无加班费</el-tag>
@@ -148,12 +189,23 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { Location, Menu } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import request from '../../utils/request'
 
 const recruitingPositions = ref([])
 const loading = ref(false)
-const searchForm = reactive({ keyword: '' })
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(12)
+
+const searchForm = reactive({
+  keyword: '',
+  workLocation: '',
+  employmentType: '',
+  payCycle: '',
+  billingMethod: null
+})
+
 const detailVisible = ref(false)
 const submitVisible = ref(false)
 const selectedPosition = ref(null)
@@ -181,12 +233,28 @@ const formatWorkingDays = (daysStr) => {
 const loadPositions = async () => {
   loading.value = true
   try {
-    // 调用获取招聘中岗位的接口
-    const res = await request({
-      url: '/positions/recruiting',
-      method: 'get'
-    })
-    recruitingPositions.value = res.data.list || res.data || []
+    const params = {
+      pageNum: currentPage.value,
+      pageSize: pageSize.value,
+      positionStatus: 1,
+      minRemainingPositions: 1,   // 服务端过滤名额不足的岗位，保证分页每页条数完整
+      positionName: searchForm.keyword || undefined,
+      workLocation: searchForm.workLocation || undefined,
+      employmentType: searchForm.employmentType || undefined
+    }
+    const res = await request({ url: '/positions', method: 'get', params })
+    let list = res.data?.list || []
+
+    // 客户端二次过滤（结算周期 & 计费方式，后端 /positions 暂不支持这两个参数）
+    if (searchForm.payCycle) {
+      list = list.filter(p => p.payCycle === searchForm.payCycle)
+    }
+    if (searchForm.billingMethod !== null && searchForm.billingMethod !== undefined && searchForm.billingMethod !== '') {
+      list = list.filter(p => p.billingMethod === searchForm.billingMethod)
+    }
+
+    recruitingPositions.value = list
+    total.value = res.data?.total ?? list.length
   } catch (error) {
     ElMessage.error('加载职位失败')
   } finally {
@@ -195,7 +263,28 @@ const loadPositions = async () => {
 }
 
 const handleFilter = () => {
-  // 简化的客户端过滤演示，实际应调用接口
+  currentPage.value = 1
+  loadPositions()
+}
+
+const handleReset = () => {
+  searchForm.keyword = ''
+  searchForm.workLocation = ''
+  searchForm.employmentType = ''
+  searchForm.payCycle = ''
+  searchForm.billingMethod = null
+  currentPage.value = 1
+  loadPositions()
+}
+
+const handlePageChange = (val) => {
+  currentPage.value = val
+  loadPositions()
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  currentPage.value = 1
   loadPositions()
 }
 
@@ -215,13 +304,8 @@ const handleApply = (p) => {
 const beforeUpload = (file) => {
   const isPdf = file.type === 'application/pdf'
   const isLt5M = file.size / 1024 / 1024 < 5
-
-  if (!isPdf) {
-    ElMessage.error('只能上传 PDF 格式的简历')
-  }
-  if (!isLt5M) {
-    ElMessage.error('简历大小不能超过 5MB')
-  }
+  if (!isPdf) ElMessage.error('只能上传 PDF 格式的简历')
+  if (!isLt5M) ElMessage.error('简历大小不能超过 5MB')
   return isPdf && isLt5M
 }
 

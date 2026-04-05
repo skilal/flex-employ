@@ -390,8 +390,14 @@ const loadData = async () => {
     
     const res = await getAttendances(params)
     
-    // 客户端分页
-    const allData = res.data || []
+    // 客户端分页和过滤
+    let allData = res.data || []
+    
+    // 第三项修复：选中“计时”时，把计件方式的记录筛掉
+    if (searchForm.pieceworkFilter === 'timed') {
+      allData = allData.filter(item => item.isPieceWork !== 1)
+    }
+    
     total.value = allData.length
     
     const start = (currentPage.value - 1) * pageSize.value

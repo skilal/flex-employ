@@ -13,8 +13,21 @@
             value-format="YYYY-MM-DD"
           />
         </el-form-item>
+        <el-form-item label="考勤状态">
+          <el-select v-model="searchForm.attendanceStatus" placeholder="全部状态" clearable style="width: 130px">
+            <el-option label="正常" value="正常" />
+            <el-option label="迟到" value="迟到" />
+            <el-option label="早退" value="早退" />
+            <el-option label="迟到且早退" value="迟到且早退" />
+            <el-option label="缺勤" value="缺勤" />
+            <el-option label="旷工" value="旷工" />
+            <el-option label="请假" value="请假" />
+            <el-option label="假日" value="假日" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">搜索</el-button>
+          <el-button @click="handleQuickMonth">本月</el-button>
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -137,7 +150,8 @@ import { ElMessage } from 'element-plus'
 import { getMyAttendances } from '../../api/attendance'
 
 const searchForm = reactive({
-  attendanceDate: []
+  attendanceDate: [],
+  attendanceStatus: ''
 })
 
 const tableData = ref([])
@@ -167,13 +181,19 @@ const loadData = async () => {
     }
     
     const res = await getMyAttendances(params)
-    const allData = res.data.records || res.data || []
-    tableData.value = allData
-    total.value = allData.length
+    let allLoaded = res.data.records || res.data || []
+    
+    // 客户端考勤状态筛选
+    if (searchForm.attendanceStatus) {
+      allLoaded = allLoaded.filter(item => item.attendanceStatus === searchForm.attendanceStatus)
+    }
+    
+    tableData.value = allLoaded
+    total.value = allLoaded.length
     
     updatePagedData()
-    // 计算统计数据
-    calculateStatistics()
+    // 统计基于当前筛选结果
+    calculateStatistics(allLoaded)
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
@@ -193,18 +213,19 @@ const handlePageChange = (val) => {
   updatePagedData()
 }
 
-const calculateStatistics = () => {
-  statistics.normalDays = tableData.value.filter(item => item.attendanceStatus === '正常').length
-  statistics.absentDays = tableData.value.filter(item => item.attendanceStatus === '缺勤').length
-  statistics.lateTimes = tableData.value.filter(item => 
+const calculateStatistics = (data) => {
+  const src = data || tableData.value
+  statistics.normalDays = src.filter(item => item.attendanceStatus === '正常').length
+  statistics.absentDays = src.filter(item => item.attendanceStatus === '缺勤').length
+  statistics.lateTimes = src.filter(item => 
     item.attendanceStatus === '迟到' || item.attendanceStatus === '迟到且早退'
   ).length
-  statistics.earlyTimes = tableData.value.filter(item => 
+  statistics.earlyTimes = src.filter(item => 
     item.attendanceStatus === '早退' || item.attendanceStatus === '迟到且早退'
   ).length
-  statistics.leaveDays = tableData.value.filter(item => item.attendanceStatus === '请假').length
-  statistics.holidayDays = tableData.value.filter(item => item.attendanceStatus === '假日').length
-  statistics.absenteeismDays = tableData.value.filter(item => item.attendanceStatus === '旷工').length
+  statistics.leaveDays = src.filter(item => item.attendanceStatus === '请假').length
+  statistics.holidayDays = src.filter(item => item.attendanceStatus === '假日').length
+  statistics.absenteeismDays = src.filter(item => item.attendanceStatus === '旷工').length
 }
 
 const formatWorkingDays = (daysStr) => {
@@ -253,6 +274,18 @@ const handleSearch = () => {
 
 const handleReset = () => {
   searchForm.attendanceDate = []
+  searchForm.attendanceStatus = ''
+  loadData()
+}
+
+// 便捷：快速跳转本月
+const handleQuickMonth = () => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
+  searchForm.attendanceDate = [`${y}-${m}-01`, `${y}-${m}-${lastDay}`]
+  searchForm.attendanceStatus = ''
   loadData()
 }
 

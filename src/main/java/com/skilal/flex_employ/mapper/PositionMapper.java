@@ -29,12 +29,14 @@ public interface PositionMapper {
                         "<if test='employmentType != null and employmentType != \"\"'> AND p.employment_type = #{employmentType} </if>"
                         +
                         "<if test='positionStatus != null'> AND p.position_status = #{positionStatus} </if>" +
+                        "<if test='minRemainingPositions != null'> AND p.remaining_positions >= #{minRemainingPositions} </if>" +
                         "ORDER BY p.position_id ASC" +
                         "</script>")
         Page<Position> findAll(Page<Position> page, @Param("positionName") String positionName,
                         @Param("workLocation") String workLocation,
                         @Param("employmentType") String employmentType,
-                        @Param("positionStatus") Integer positionStatus);
+                        @Param("positionStatus") Integer positionStatus,
+                        @Param("minRemainingPositions") Integer minRemainingPositions);
 
         @Select("SELECT p.*, p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, p.working_days AS workingDays, "
                         +

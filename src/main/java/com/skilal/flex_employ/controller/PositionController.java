@@ -27,10 +27,11 @@ public class PositionController {
             @RequestParam(required = false) String positionName,
             @RequestParam(required = false) String workLocation,
             @RequestParam(required = false) String employmentType,
-            @RequestParam(required = false) Integer positionStatus) {
+            @RequestParam(required = false) Integer positionStatus,
+            @RequestParam(required = false) Integer minRemainingPositions) {
         
         Page<Position> page = new Page<>(pageNum, pageSize);
-        Page<Position> pageResult = positionMapper.findAll(page, positionName, workLocation, employmentType, positionStatus);
+        Page<Position> pageResult = positionMapper.findAll(page, positionName, workLocation, employmentType, positionStatus, minRemainingPositions);
         
         Map<String, Object> result = new HashMap<>();
         result.put("list", pageResult.getRecords());
