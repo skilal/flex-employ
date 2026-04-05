@@ -55,5 +55,9 @@ public class SalaryConfig {
     private Integer lateThresholdMin; // 迟到超过该分钟数视为缺勤
     private Integer earlyLeaveThresholdMin; // 早退超过该分钟数视为缺勤
 
+    // 计件相关字段
+    private Integer isPieceWork; // 是否计件: 0-计时(默认), 1-计件
+    private BigDecimal pieceRate; // 计件单价（元/件），计件模式下使用
+
     private LocalDateTime createdAt;
 }

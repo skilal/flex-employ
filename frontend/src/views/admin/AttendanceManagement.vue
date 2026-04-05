@@ -41,6 +41,16 @@
             <el-option label="假日" value="假日" />
           </el-select>
         </el-form-item>
+        <el-form-item label="计费模式">
+          <el-radio-group v-model="searchForm.pieceworkFilter" @change="handleSearch" size="small">
+            <el-radio-button label="all">全部</el-radio-button>
+            <el-radio-button label="timed">计时</el-radio-button>
+            <el-radio-button label="piece">计件</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="searchForm.pieceworkFilter === 'piece'" label="件数状态">
+          <el-checkbox v-model="searchForm.unrecordedOnly" @change="handleSearch">仅看未录入</el-checkbox>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
@@ -100,9 +110,23 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="完成件数" width="110">
+          <template #default="{ row }">
+            <template v-if="row.isPieceWork === 1">
+              <el-tag v-if="row.pieceCount === null || row.pieceCount === undefined" type="warning" size="small">待录入</el-tag>
+              <span v-else style="font-weight: bold; color: #409EFF;">{{ row.pieceCount }} 件</span>
+            </template>
+            <span v-else style="color: #C0C4CC;">--</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button 
+              v-if="row.isPieceWork === 1" 
+              size="small" link type="warning" 
+              @click="handleOpenPieceInput(row)"
+            >录入件数</el-button>
             <el-button size="small" link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -234,6 +258,28 @@
         <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 录入件数弹窗 -->
+    <el-dialog v-model="pieceDialogVisible" title="录入当日完成件数" width="360px">
+      <div style="padding: 8px 0;">
+        <div style="margin-bottom: 12px; color: #606266; font-size: 14px;">
+          员工：<b>{{ pieceTarget.userName }}</b>，日期：<b>{{ pieceTarget.attendanceDate }}</b>
+        </div>
+        <el-input-number
+          v-model="pieceInputVal"
+          :min="0"
+          :step="1"
+          :precision="0"
+          placeholder="请输入完成件数"
+          style="width: 100%"
+          controls-position="right"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="pieceDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="pieceSubmitLoading" @click="handleSubmitPieceCount">确认录入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -241,7 +287,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Timer, Plus } from '@element-plus/icons-vue'
-import { getAttendances, createAttendance, updateAttendance, deleteAttendance } from '../../api/attendance'
+import { getAttendances, createAttendance, updateAttendance, deleteAttendance, updatePieceCount } from '../../api/attendance'
 import { getWorkers } from '../../api/worker'
 
 const workers = ref([])
@@ -258,8 +304,16 @@ const searchForm = reactive({
   userName: '',
   positionName: '',
   attendanceDate: null,
-  attendanceStatus: null
+  attendanceStatus: null,
+  pieceworkFilter: 'all', // all | timed | piece
+  unrecordedOnly: false
 })
+
+// 录入件数弹窗相关
+const pieceDialogVisible = ref(false)
+const pieceInputVal = ref(0)
+const pieceSubmitLoading = ref(false)
+const pieceTarget = reactive({ attendanceId: null, userName: '', attendanceDate: '' })
 
 const tableData = ref([])
 const loading = ref(false)
@@ -329,7 +383,9 @@ const loadData = async () => {
       attendanceDate: searchForm.attendanceDate || undefined,
       attendanceStatus: searchForm.attendanceStatus || undefined,
       userName: searchForm.userName || undefined,
-      positionName: searchForm.positionName || undefined
+      positionName: searchForm.positionName || undefined,
+      pieceworkOnly: searchForm.pieceworkFilter === 'piece' ? true : undefined,
+      unrecordedOnly: (searchForm.pieceworkFilter === 'piece' && searchForm.unrecordedOnly) ? true : undefined
     }
     
     const res = await getAttendances(params)
@@ -359,7 +415,32 @@ const handleReset = () => {
   searchForm.positionName = ''
   searchForm.attendanceDate = null
   searchForm.attendanceStatus = null
+  searchForm.pieceworkFilter = 'all'
+  searchForm.unrecordedOnly = false
   handleSearch()
+}
+
+// 录入件数弹窗
+const handleOpenPieceInput = (row) => {
+  pieceTarget.attendanceId = row.attendanceId
+  pieceTarget.userName = row.userName
+  pieceTarget.attendanceDate = row.attendanceDate
+  pieceInputVal.value = row.pieceCount ?? 0
+  pieceDialogVisible.value = true
+}
+
+const handleSubmitPieceCount = async () => {
+  pieceSubmitLoading.value = true
+  try {
+    await updatePieceCount(pieceTarget.attendanceId, pieceInputVal.value)
+    ElMessage.success('录入成功')
+    pieceDialogVisible.value = false
+    loadData()
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || '录入失败')
+  } finally {
+    pieceSubmitLoading.value = false
+  }
 }
 
 const formatTime = (time) => {

@@ -12,11 +12,13 @@ public interface AttendanceMapper {
                         "SELECT a.*, COALESCE(u.name, u.account) AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "IFNULL(p.working_days, '(未设定)') AS workingDays " +
+                        "IFNULL(p.working_days, '(未设定)') AS workingDays, " +
+                        "IFNULL(sc.is_piece_work, 0) AS isPieceWork " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE 1=1 " +
                         "<if test='attendanceDate != null'> AND a.attendance_date = #{attendanceDate} </if>" +
                         "<if test='attendanceStatus != null and attendanceStatus != \"\"'> AND a.attendance_status = #{attendanceStatus} </if>"
@@ -25,22 +27,30 @@ public interface AttendanceMapper {
                         +
                         "<if test='positionName != null and positionName != \"\"'> AND p.position_name LIKE CONCAT('%', #{positionName}, '%') </if>"
                         +
+                        "<if test='pieceworkOnly != null and pieceworkOnly'> AND IFNULL(sc.is_piece_work, 0) = 1 </if>"
+                        +
+                        "<if test='unrecordedOnly != null and unrecordedOnly'> AND a.piece_count IS NULL AND IFNULL(sc.is_piece_work, 0) = 1 </if>"
+                        +
                         "ORDER BY a.attendance_date DESC" +
                         "</script>")
         List<Attendance> findAll(@Param("attendanceDate") LocalDate attendanceDate,
                         @Param("attendanceStatus") String attendanceStatus,
                         @Param("userName") String userName,
-                        @Param("positionName") String positionName);
+                        @Param("positionName") String positionName,
+                        @Param("pieceworkOnly") Boolean pieceworkOnly,
+                        @Param("unrecordedOnly") Boolean unrecordedOnly);
 
         @Select("<script>" +
                         "SELECT a.*, COALESCE(u.name, u.account) AS userName, p.position_name AS positionName, " +
                         "p.work_start_time AS workStartTime, p.work_end_time AS workEndTime, " +
                         "p.check_in_time AS checkInTime, p.check_out_time AS checkOutTime, " +
-                        "IFNULL(p.working_days, '(未设定)') AS workingDays " +
+                        "IFNULL(p.working_days, '(未设定)') AS workingDays, " +
+                        "IFNULL(sc.is_piece_work, 0) AS isPieceWork " +
                         "FROM attendance a " +
                         "INNER JOIN on_duty_worker w ON a.on_duty_worker_id = w.on_duty_worker_id " +
                         "LEFT JOIN user u ON w.user_id = u.user_id " +
                         "LEFT JOIN position p ON w.position_id = p.position_id " +
+                        "LEFT JOIN salary_config sc ON p.salary_config_id = sc.config_id " +
                         "WHERE w.user_id = #{userId} " +
                         "<if test='startDate != null'> AND a.attendance_date &gt;= #{startDate} </if>" +
                         "<if test='endDate != null'> AND a.attendance_date &lt;= #{endDate} </if>" +
@@ -58,17 +68,20 @@ public interface AttendanceMapper {
         Attendance findById(Long attendanceId);
 
         @Insert("INSERT INTO attendance (on_duty_worker_id, position_id, attendance_date, actual_check_in, " +
-                        "actual_check_out, attendance_status) " +
+                        "actual_check_out, attendance_status, piece_count) " +
                         "VALUES (#{onDutyWorkerId}, #{positionId}, #{attendanceDate}, #{actualCheckIn}, #{actualCheckOut}, "
                         +
-                        "#{attendanceStatus})")
+                        "#{attendanceStatus}, #{pieceCount})")
         @Options(useGeneratedKeys = true, keyProperty = "attendanceId")
         int insert(Attendance attendance);
 
         @Update("UPDATE attendance SET attendance_date = #{attendanceDate}, actual_check_in = #{actualCheckIn}, " +
                         "actual_check_out = #{actualCheckOut}, " +
-                        "attendance_status = #{attendanceStatus} WHERE attendance_id = #{attendanceId}")
+                        "attendance_status = #{attendanceStatus}, piece_count = #{pieceCount} WHERE attendance_id = #{attendanceId}")
         int update(Attendance attendance);
+
+        @Update("UPDATE attendance SET piece_count = #{pieceCount} WHERE attendance_id = #{attendanceId}")
+        int updatePieceCount(@Param("attendanceId") Long attendanceId, @Param("pieceCount") Integer pieceCount);
 
         @Delete("DELETE FROM attendance WHERE attendance_id = #{attendanceId}")
         int delete(Long attendanceId);

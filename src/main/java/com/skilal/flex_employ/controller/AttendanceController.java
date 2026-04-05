@@ -35,9 +35,11 @@ public class AttendanceController {
     public Result<List<Attendance>> getAttendances(@RequestParam(required = false) LocalDate attendanceDate,
             @RequestParam(required = false) String attendanceStatus,
             @RequestParam(required = false) String userName,
-            @RequestParam(required = false) String positionName) {
+            @RequestParam(required = false) String positionName,
+            @RequestParam(required = false) Boolean pieceworkOnly,
+            @RequestParam(required = false) Boolean unrecordedOnly) {
         List<Attendance> attendances = attendanceMapper.findAll(attendanceDate, attendanceStatus, userName,
-                positionName);
+                positionName, pieceworkOnly, unrecordedOnly);
         return Result.success(attendances);
     }
 
@@ -78,6 +80,21 @@ public class AttendanceController {
             return Result.success("创建成功");
         }
         return Result.error("创建失败");
+    }
+
+    /**
+     * 录入计件数量（轻量接口，仅更新 piece_count 字段）
+     */
+    @CheckRole(Role.ADMIN)
+    @PatchMapping("/{attendanceId}/piece-count")
+    public Result<String> updatePieceCount(@PathVariable Long attendanceId,
+            @RequestBody java.util.Map<String, Integer> body) {
+        Integer pieceCount = body.get("pieceCount");
+        if (pieceCount == null || pieceCount < 0) {
+            return Result.error("件数不合法，请输入非负整数");
+        }
+        int rows = attendanceMapper.updatePieceCount(attendanceId, pieceCount);
+        return rows > 0 ? Result.success("录入成功") : Result.error("记录不存在");
     }
 
     @CheckRole(Role.ADMIN)
@@ -137,13 +154,21 @@ public class AttendanceController {
         }
 
         try {
-            String today = java.time.LocalDate.now().toString();
             String secret = "flex_punch_2024";
-            String expectedContent = positionId + "-" + today + "-" + secret;
             String decodedToken = new String(java.util.Base64.getDecoder().decode(qrToken));
+            String[] parts = decodedToken.split("-");
 
-            if (!expectedContent.equals(decodedToken)) {
-                return Result.error("打卡失败：考勤二维码无效或已过期");
+            // 格式必须为：positionId - timestamp - secret
+            if (parts.length != 3 || !parts[0].equals(positionId.toString()) || !parts[2].equals(secret)) {
+                return Result.error("打卡失败：考勤二维码无效或被篡改");
+            }
+
+            long qrTimestamp = Long.parseLong(parts[1]);
+            long currentTimestamp = System.currentTimeMillis() / 1000;
+
+            // 二维码前端每15秒刷新一次，允许15秒误差容载弱网，合记超过 30 秒即视为截图过期作废
+            if (currentTimestamp - qrTimestamp > 30 || currentTimestamp - qrTimestamp < -5) {
+                return Result.error("打卡失败：二维码已过期，为了防止截图代打卡，请使用现场最新鲜的考勤码");
             }
         } catch (Exception e) {
             return Result.error("打卡失败：考勤码解析异常");

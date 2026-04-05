@@ -1,8 +1,20 @@
 <template>
-  <div class="register-container">
-    <el-card class="register-card">
+  <div class="auth-layout">
+    <!-- 独立高亮的系统大标题 -->
+    <div class="system-header">
+      <div class="logo-placeholder">
+        <el-icon :size="48" color="#fff"><DataAnalysis /></el-icon>
+      </div>
+      <h1 class="system-title">人力服务公司薪资结算系统</h1>
+      <p class="system-subtitle">Flex Employ Platform · 高效协同 智能结算</p>
+    </div>
+
+    <el-card class="auth-card">
       <template #header>
-        <h2>人力服务公司薪资结算平台<br>账号注册</h2>
+        <div class="card-header">
+          <h2>账号注册</h2>
+          <p class="welcome-text">加入系统，探索更多</p>
+        </div>
       </template>
       
       <el-form
@@ -102,6 +114,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { DataAnalysis } from '@element-plus/icons-vue'
 import { register } from '../api/auth'
 
 const router = useRouter()
@@ -207,27 +220,113 @@ const goToLogin = () => {
 </script>
 
 <style scoped>
-.register-container {
+.auth-layout {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px 0;
+  background: 
+    radial-gradient(circle at 15% 50%, rgba(118, 75, 162, 0.4), transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(102, 126, 234, 0.4), transparent 50%),
+    #0f172a;
+  padding: 40px 20px;
+  box-sizing: border-box;
 }
 
-.register-card {
-  width: 500px;
-  margin: 20px 0;
-}
-
-.register-card :deep(.el-card__header) {
+.system-header {
   text-align: center;
-  background-color: #f5f7fa;
+  margin-bottom: 30px;
+  animation: fadeInDown 0.8s ease-out;
 }
 
-.register-card h2 {
+.logo-placeholder {
+  margin-bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 8px 32px rgba(118, 75, 162, 0.3);
+}
+
+.system-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.system-subtitle {
+  font-size: 15px;
+  color: #94a3b8;
   margin: 0;
-  color: #303133;
+  letter-spacing: 1px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 480px; /* 注册表单比较多，卡片稍微放宽 */
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.auth-card :deep(.el-card__header) {
+  padding: 24px 30px 10px;
+  border-bottom: none;
+}
+
+.card-header {
+  text-align: center;
+}
+
+.card-header h2 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.welcome-text {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.auth-card :deep(.el-card__body) {
+  padding: 10px 30px 30px;
+}
+
+.el-button {
+  height: 44px;
+  font-size: 16px;
+  border-radius: 8px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(118, 75, 162, 0.3);
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

@@ -63,6 +63,13 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="isPieceWork" label="计费模式" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.isPieceWork === 1 ? 'warning' : 'info'" size="small">
+              {{ row.isPieceWork === 1 ? '计件' : '计时' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="扣款/费率预览" min-width="250">
           <template #default="{ row }">
             <div style="font-size: 12px">
@@ -317,6 +324,21 @@
           </el-col>
         </el-row>
 
+        <el-divider content-position="left">计件配置</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="启用计件" prop="isPieceWork">
+              <el-switch v-model="form.isPieceWork" :active-value="1" :inactive-value="0" active-text="计件模式" inactive-text="计时模式" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="form.isPieceWork === 1">
+            <el-form-item label="计件单价" prop="pieceRate">
+              <el-input-number v-model="form.pieceRate" :min="0" :precision="2" style="width: 100%" />
+              <div class="tip">元/件，工资 = 完成件数 × 单价</div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-divider content-position="left">计薪基数预留 (暂未启用逻辑)</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -385,6 +407,8 @@ const form = reactive({
   unemploymentRateEnt: 0,
   injuryRateEnt: 0,
   housingFundRateEnt: 0,
+  isPieceWork: 0,
+  pieceRate: 0,
   socialSecurityBaseUpper: 0,
   socialSecurityBaseLower: 0,
   overtimeWeekdayMultiplier: 1.5,
@@ -470,7 +494,9 @@ const handleAdd = () => {
     overtimeThresholdMin: 30,
     overtimeRoundingUnit: 1.0,
     lateThresholdMin: 30,
-    earlyLeaveThresholdMin: 30
+    earlyLeaveThresholdMin: 30,
+    isPieceWork: 0,
+    pieceRate: 0
   })
   dialogVisible.value = true
 }

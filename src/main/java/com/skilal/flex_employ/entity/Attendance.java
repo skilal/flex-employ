@@ -24,4 +24,6 @@ public class Attendance {
     private LocalTime checkInTime;
     private LocalTime checkOutTime;
     private String workingDays;
+    private Integer pieceCount; // 当日完成件数， NULL=未录入或计时岗位
+    private Integer isPieceWork; // JOIN关联计件标志，供前端查询展示用
 }

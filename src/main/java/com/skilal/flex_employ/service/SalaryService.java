@@ -130,15 +130,27 @@ public class SalaryService {
 
         // 5. 基础工资计算
         BigDecimal basePay = BigDecimal.ZERO;
-        BigDecimal unitPrice = config.getBaseRate() != null ? config.getBaseRate() : BigDecimal.ZERO;
 
-        if (config.getBillingMethod() != null && config.getBillingMethod() == 1) {
-            // 按小时计费
-            BigDecimal dailyHours = calculateStandardDailyHours(position);
-            basePay = effectiveDays.multiply(dailyHours).multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+        if (config.getIsPieceWork() != null && config.getIsPieceWork() == 1) {
+            // ===== 计件模式 =====
+            // basePay = 周期内所有已录入的 piece_count 合计 × pieceRate
+            BigDecimal pieceRate = config.getPieceRate() != null ? config.getPieceRate() : BigDecimal.ZERO;
+            long totalPieces = attendances.stream()
+                    .filter(a -> a.getPieceCount() != null)
+                    .mapToLong(a -> a.getPieceCount())
+                    .sum();
+            basePay = new BigDecimal(totalPieces).multiply(pieceRate).setScale(2, RoundingMode.HALF_UP);
         } else {
-            // 默认按天计费 (Method=2)
-            basePay = effectiveDays.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+            // ===== 计时/按天模式 =====
+            BigDecimal unitPrice = config.getBaseRate() != null ? config.getBaseRate() : BigDecimal.ZERO;
+            if (config.getBillingMethod() != null && config.getBillingMethod() == 1) {
+                // 按小时计费
+                BigDecimal dailyHours = calculateStandardDailyHours(position);
+                basePay = effectiveDays.multiply(dailyHours).multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+            } else {
+                // 默认按天计费 (Method=2)
+                basePay = effectiveDays.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+            }
         }
         slip.setBasePay(basePay);
 

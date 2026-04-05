@@ -8,6 +8,7 @@ import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.ApplicationMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
 import com.aliyun.oss.AliOssUtil;
+import com.skilal.flex_employ.mapper.PositionMapper;
 import com.skilal.flex_employ.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,7 @@ public class ApplicationController {
     private OnDutyWorkerMapper onDutyWorkerMapper;
 
     @Autowired
-    private com.skilal.flex_employ.mapper.PositionMapper positionMapper;
+    private PositionMapper positionMapper;
 
     @Autowired
     private JwtUtil jwtUtil;

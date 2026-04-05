@@ -33,7 +33,7 @@ public interface SalaryConfigMapper {
                         "social_security_base_upper, social_security_base_lower, " +
                         "overtime_weekday_multiplier, overtime_weekend_multiplier, overtime_holiday_multiplier, " +
                         "overtime_calc_mode, overtime_threshold_min, overtime_rounding_unit, " +
-                        "late_threshold_min, early_leave_threshold_min) " +
+                        "late_threshold_min, early_leave_threshold_min, is_piece_work, piece_rate) " +
                         "VALUES (#{configName}, #{payCycle}, #{billingMethod}, #{baseRate}, #{hasOvertimePay}, " +
                         "#{latePenalty}, #{earlyPenalty}, #{absentPenalty}, #{absencePenalty}, #{sickLeaveRate}, #{personalLeaveRate}, "
                         +
@@ -44,7 +44,7 @@ public interface SalaryConfigMapper {
                         "#{socialSecurityBaseUpper}, #{socialSecurityBaseLower}, " +
                         "#{overtimeWeekdayMultiplier}, #{overtimeWeekendMultiplier}, #{overtimeHolidayMultiplier}, " +
                         "#{overtimeCalcMode}, #{overtimeThresholdMin}, #{overtimeRoundingUnit}, " +
-                        "#{lateThresholdMin}, #{earlyLeaveThresholdMin})")
+                        "#{lateThresholdMin}, #{earlyLeaveThresholdMin}, #{isPieceWork}, #{pieceRate})")
         @Options(useGeneratedKeys = true, keyProperty = "configId")
         int insert(SalaryConfig config);
 
@@ -71,7 +71,9 @@ public interface SalaryConfigMapper {
                         +
                         "overtime_threshold_min = #{overtimeThresholdMin}, overtime_rounding_unit = #{overtimeRoundingUnit}, "
                         +
-                        "late_threshold_min = #{lateThresholdMin}, early_leave_threshold_min = #{earlyLeaveThresholdMin} "
+                        "late_threshold_min = #{lateThresholdMin}, early_leave_threshold_min = #{earlyLeaveThresholdMin}, "
+                        +
+                        "is_piece_work = #{isPieceWork}, piece_rate = #{pieceRate} "
                         +
                         "WHERE config_id = #{configId}")
         int update(SalaryConfig config);

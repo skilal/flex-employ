@@ -46,7 +46,7 @@ public class AttendanceScheduler {
             if (attendanceService.isWorkDay(worker.getPositionId(), yesterday)) {
                 // 判断是否已存在记录
                 // 暂时利用 findAll 过滤一下，后面可以优化 Mapper
-                List<Attendance> existing = attendanceMapper.findAll(yesterday, null, null, null);
+                List<Attendance> existing = attendanceMapper.findAll(yesterday, null, null, null, null, null);
                 boolean recordExists = existing.stream()
                         .anyMatch(a -> a.getOnDutyWorkerId().equals(worker.getOnDutyWorkerId()));
 

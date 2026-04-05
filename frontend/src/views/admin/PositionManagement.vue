@@ -266,7 +266,7 @@
     </el-dialog>
 
     <!-- 考勤二维码弹窗 -->
-    <el-dialog v-model="qrDialogVisible" :title="qrPositionName + ' - 考勤打卡二维码'" width="400px" center>
+    <el-dialog v-model="qrDialogVisible" :title="qrPositionName + ' - 考勤打卡二维码'" width="400px" center @close="handleQRDialogClose">
       <div style="text-align: center; padding: 20px 0;">
         <div class="qr-container" style="background: white; padding: 15px; display: inline-block; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
           <qrcode-vue :value="qrCodeValue" :size="240" level="H" />
@@ -341,18 +341,34 @@ let form = reactive({
 const qrDialogVisible = ref(false)
 const qrCodeValue = ref('')
 const qrPositionName = ref('')
+const qrTimer = ref(null)
+
+const generateQR = (row) => {
+  // 生成带验证令牌的打卡链接，采用秒级时间戳，防止截图代打卡
+  const timestamp = Math.floor(Date.now() / 1000)
+  const secret = 'flex_punch_2024'
+  const token = btoa(`${row.positionId}-${timestamp}-${secret}`)
+  const origin = window.location.origin
+  qrCodeValue.value = `${origin}/punch/${row.positionId}?token=${token}`
+}
 
 const handleShowQR = (row) => {
   qrPositionName.value = row.positionName
-  // 生成带验证令牌的打卡链接，确保只能通过扫码访问
-  // 令牌包含：岗位ID + 当前日期 + 内部密钥（Base64混淆）
-  const today = new Date().toISOString().split('T')[0]
-  const secret = 'flex_punch_2024'
-  const token = btoa(`${row.positionId}-${today}-${secret}`)
-  
-  const origin = window.location.origin
-  qrCodeValue.value = `${origin}/punch/${row.positionId}?token=${token}`
+  generateQR(row)
   qrDialogVisible.value = true
+
+  // 挂载定时器，每 15 秒刷新一次二维码
+  if (qrTimer.value) clearInterval(qrTimer.value)
+  qrTimer.value = setInterval(() => {
+    generateQR(row)
+  }, 15000)
+}
+
+const handleQRDialogClose = () => {
+  if (qrTimer.value) {
+    clearInterval(qrTimer.value)
+    qrTimer.value = null
+  }
 }
 
 // 自动计算逻辑

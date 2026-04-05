@@ -52,3 +52,12 @@ export function qrPunch(data) {
         data
     })
 }
+
+// 录入计件当日完成件数（轻量接口）
+export function updatePieceCount(attendanceId, pieceCount) {
+    return request({
+        url: `/attendances/${attendanceId}/piece-count`,
+        method: 'patch',
+        data: { pieceCount }
+    })
+}
