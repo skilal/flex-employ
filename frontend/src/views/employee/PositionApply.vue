@@ -66,7 +66,13 @@
             </div>
             <div class="card-footer">
               <el-button type="primary" plain @click="handleViewDetail(p)">查看详情</el-button>
-              <el-button type="primary" @click="handleApply(p)">立即申请</el-button>
+              <el-button 
+                :type="getApplyButtonType(getApplicationStatus(p.positionId))" 
+                :disabled="isApplyDisabled(getApplicationStatus(p.positionId))"
+                @click="handleApply(p)"
+              >
+                {{ getApplicationStatus(p.positionId) || '立即申请' }}
+              </el-button>
             </div>
           </el-card>
         </el-col>
@@ -184,7 +190,13 @@
       </div>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleApply(selectedPosition)">确认申请</el-button>
+        <el-button 
+          :type="getApplyButtonType(getApplicationStatus(selectedPosition.positionId))" 
+          :disabled="isApplyDisabled(getApplicationStatus(selectedPosition.positionId))"
+          @click="handleApply(selectedPosition)"
+        >
+          {{ getApplicationStatus(selectedPosition.positionId) || '确认申请' }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -195,12 +207,15 @@ import { ref, reactive, onMounted } from 'vue'
 import { Location, Menu } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../../utils/request'
+import { getMyApplications } from '../../api/application'
 
 const recruitingPositions = ref([])
 const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(12)
+
+const myApplicationsMap = ref(new Map())
 
 const searchForm = reactive({
   keyword: '',
@@ -256,7 +271,9 @@ const loadPositions = async () => {
     if (searchForm.billingMethod !== null && searchForm.billingMethod !== undefined && searchForm.billingMethod !== '') {
       list = list.filter(p => p.billingMethod === searchForm.billingMethod)
     }
-
+    // 获取用户的申请记录
+    await loadMyApplications()
+    
     recruitingPositions.value = list
     total.value = res.data?.total ?? list.length
   } catch (error) {
@@ -264,6 +281,39 @@ const loadPositions = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const loadMyApplications = async () => {
+  try {
+    const res = await getMyApplications()
+    const list = res.data || []
+    const map = new Map()
+    // 按 positionId 存储最近或最有效的申请状态
+    list.forEach(app => {
+      // 如果之前没有，或者遇到"已通过"这种优先级高的，可以进行逻辑选择
+      // 对于简单的实现，如果只是存入最新的一条，一般后端获取的是按时间排序的
+      // 这里直接覆盖即可
+      map.set(app.positionId, app.status)
+    })
+    myApplicationsMap.value = map
+  } catch (error) {
+    console.error('获取我的申请记录失败', error)
+  }
+}
+
+const getApplicationStatus = (positionId) => {
+  return myApplicationsMap.value.get(positionId) || ''
+}
+
+const getApplyButtonType = (status) => {
+  if (status === '已通过' || status === '同意') return 'success'
+  if (status === '已拒绝') return 'danger'
+  if (status === '已申请' || status === '申请中') return 'info'
+  return 'primary'
+}
+
+const isApplyDisabled = (status) => {
+  return !!status // 如果有任何状态（不为空字符串），则禁用按钮。如需"已拒绝"可以再次申请，可改为 status && status !== '已拒绝'
 }
 
 const handleFilter = () => {
@@ -341,7 +391,7 @@ const confirmSubmit = async () => {
     ElMessage.success('申请提交成功，请等待管理员审核')
     submitVisible.value = false
     detailVisible.value = false
-    loadPositions()
+    loadPositions() // 刷新列表及我的申请状态
   } catch (error) {
     ElMessage.error(error.response?.data?.message || '申请失败')
   } finally {
