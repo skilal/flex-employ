@@ -2,20 +2,25 @@
   <div class="my-position">
     <!-- 搜索栏 -->
     <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="岗位名称">
-          <el-input v-model="searchForm.positionName" placeholder="筛选岗位" clearable @change="handleSearch" />
-        </el-form-item>
-        <el-form-item label="在岗状态">
-          <el-select v-model="searchForm.workerStatus" placeholder="全部状态" clearable @change="handleSearch">
-            <el-option label="在岗" value="在岗" />
-            <el-option label="已结束" value="已结束" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
+      <el-form :model="searchForm" label-width="80px">
+        <el-row :gutter="10">
+          <el-col :xs="24" :sm="10">
+            <el-form-item label="岗位名称">
+              <el-input v-model="searchForm.positionName" placeholder="筛选岗位" clearable @change="handleSearch" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="7">
+            <el-form-item label="在岗状态">
+              <el-select v-model="searchForm.workerStatus" placeholder="全部" clearable @change="handleSearch" style="width: 100%">
+                <el-option label="在岗" value="在岗" />
+                <el-option label="已结束" value="已结束" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="7" class="filter-btns">
+            <el-button type="primary" @click="handleSearch" style="width: 100%">查询</el-button>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
 
@@ -27,48 +32,52 @@
         </div>
       </template>
 
-      <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%">
-        <el-table-column prop="onDutyWorkerId" label="记录ID" width="80" />
-        <el-table-column prop="positionName" label="岗位名称" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="laborCompanyName" label="用工单位" min-width="120" show-overflow-tooltip />
-        <el-table-column label="责任方" min-width="120" show-overflow-tooltip>
-          <template #default="{ row }">
-            <el-tag v-if="row.salaryPayerName" type="warning" size="small" effect="plain">{{ row.salaryPayerName }}</el-tag>
-            <el-tag v-else type="info" size="small" effect="plain">人力服务公司</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="薪资标准/周期" width="140">
+      <!-- 桌面端表格 -->
+      <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%" class="hidden-xs">
+        <el-table-column prop="positionName" label="岗位名称" min-width="150" />
+        <el-table-column prop="laborCompanyName" label="用工单位" min-width="120" />
+        <el-table-column label="薪资标准" width="140">
           <template #default="{ row }">
             <div style="font-weight: bold; color: #f56c6c">¥{{ row.baseRate }}/{{ row.billingMethod === 1 ? '时' : '天' }}</div>
-            <el-tag size="small" type="info" effect="plain">{{ row.payCycle }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="负责人/电话" width="150">
+        <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <div>{{ row.responsibleName || '管理员' }}</div>
-            <div style="font-size: 12px; color: #909399">{{ row.responsiblePhone || '-' }}</div>
+            <el-tag :type="!row.leaveDate ? 'success' : 'info'">{{ !row.leaveDate ? '在岗' : '已结束' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="打卡时段" width="130">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ row.checkInTime ? row.checkInTime.substring(0,5) : '-' }} - {{ row.checkOutTime ? row.checkOutTime.substring(0,5) : '-' }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="hireDate" label="入职日期" width="110" />
-        <el-table-column prop="leaveDate" label="离职日期" width="110" />
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag v-if="!row.leaveDate" type="success">在岗</el-tag>
-            <el-tag v-else type="info">已结束</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button v-if="!row.leaveDate" size="small" type="primary" @click="handleLeave(row)">请假</el-button>
             <el-button size="small" @click="handleViewSchedule(row)">排班</el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 移动端卡片列表 -->
+      <div class="mobile-list visible-xs">
+        <div v-for="row in tableData" :key="row.onDutyWorkerId" class="position-card" @click="handleViewSchedule(row)">
+          <div class="card-header">
+            <span class="p-name">{{ row.positionName }}</span>
+            <el-tag :type="!row.leaveDate ? 'success' : 'info'" size="small">{{ !row.leaveDate ? '在岗' : '已结束' }}</el-tag>
+          </div>
+          <div class="card-desc">单位：{{ row.laborCompanyName }}</div>
+          <div class="card-meta">
+            <div class="meta-item">
+              <span class="label">薪资</span>
+              <span class="val price">¥{{ row.baseRate }}/{{ row.billingMethod === 1 ? '时' : '天' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">入职日期</span>
+              <span class="val">{{ row.hireDate }}</span>
+            </div>
+          </div>
+          <div class="card-actions" @click.stop v-if="!row.leaveDate">
+            <el-button size="small" type="primary" style="width: 100%" @click="handleLeave(row)">提交请假申请</el-button>
+          </div>
+        </div>
+        <el-empty v-if="tableData.length === 0 && !loading" description="暂无记录" />
+      </div>
 
       <el-pagination
         v-model:current-page="currentPage"
@@ -85,7 +94,7 @@
     </el-card>
 
     <!-- 排班详情对话框 -->
-    <el-dialog v-model="scheduleVisible" title="排班信息" width="600px">
+    <el-dialog v-model="scheduleVisible" title="岗位详情与排班" width="90%" style="max-width: 620px">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="岗位名称">{{ currentRow.positionName }}</el-descriptions-item>
         <el-descriptions-item label="岗位状态">
@@ -334,8 +343,81 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.my-position { width: 100%; box-sizing: border-box; }
-.search-card { margin-bottom: 20px; }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-header h3 { margin: 0; }
+.my-position {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.search-card {
+  margin-bottom: 20px;
+}
+
+/* 移动端卡片式展示 */
+.position-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  cursor: pointer;
+}
+.position-card:active {
+  background: #fdfdfd;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.card-header .p-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: #303133;
+}
+.card-desc {
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 15px;
+}
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+.meta-item {
+  display: flex;
+  flex-direction: column;
+}
+.meta-item .label {
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+.meta-item .val {
+  font-size: 13px;
+  color: #606266;
+}
+.meta-item .val.price {
+  color: #f56c6c;
+  font-weight: bold;
+}
+.card-actions {
+  border-top: 1px dashed #ebeef5;
+  padding-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .search-card :deep(.el-form-item) {
+    display: flex;
+    margin-right: 0;
+    margin-bottom: 12px;
+  }
+  .search-card :deep(.el-form-item__label) {
+    width: auto !important;
+  }
+}
 </style>

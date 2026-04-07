@@ -2,31 +2,39 @@
   <div class="my-salary">
     <!-- 搜索栏 -->
     <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="岗位名称">
-          <el-input v-model="searchForm.positionName" placeholder="筛选岗位" clearable @change="handleSearch" />
-        </el-form-item>
-        <el-form-item label="计薪月份">
-          <el-date-picker
-            v-model="searchForm.dateRange"
-            type="monthrange"
-            range-separator="至"
-            start-placeholder="开始月份"
-            end-placeholder="结束月份"
-            value-format="YYYY-MM"
-            @change="handleSearch"
-          />
-        </el-form-item>
-        <el-form-item label="支付状态">
-          <el-select v-model="searchForm.paymentStatus" placeholder="全部状态" clearable @change="handleSearch">
-            <el-option label="待支付" value="PENDING" />
-            <el-option label="已支付" value="PAID" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
+      <el-form :model="searchForm" label-width="80px">
+        <el-row :gutter="10">
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="计薪月份">
+              <el-date-picker
+                v-model="searchForm.dateRange"
+                type="monthrange"
+                range-separator="至"
+                start-placeholder="开始"
+                end-placeholder="结束"
+                value-format="YYYY-MM"
+                style="width: 100%"
+                @change="handleSearch"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="6" :md="5">
+            <el-form-item label="岗位名称">
+              <el-input v-model="searchForm.positionName" placeholder="筛选岗位" clearable @change="handleSearch" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="6" :md="5">
+            <el-form-item label="支付状态">
+              <el-select v-model="searchForm.paymentStatus" placeholder="全部" clearable @change="handleSearch" style="width: 100%">
+                <el-option label="待支付" value="PENDING" />
+                <el-option label="已支付" value="PAID" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :xs-hidden="false" :sm="24" :md="6" class="filter-btns">
+            <el-button type="primary" @click="handleSearch" style="width: 100%">查询</el-button>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
 
@@ -39,35 +47,63 @@
         </div>
       </template>
 
-      <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%">
+      <!-- 桌面端表格 -->
+      <el-table :data="tableData" border stripe v-loading="loading" style="width: 100%" class="hidden-xs">
         <el-table-column prop="positionName" label="所属岗位" show-overflow-tooltip />
         <el-table-column prop="cycleStart" label="周期开始" width="110" />
         <el-table-column prop="cycleEnd" label="周期结束" width="110" />
-        <el-table-column label="应发金额" width="100">
+        <el-table-column label="应发" width="100">
           <template #default="{ row }">¥{{ row.grossPay }}</template>
         </el-table-column>
-        <el-table-column label="扣除合计" width="100">
+        <el-table-column label="扣除" width="100">
           <template #default="{ row }">¥{{ row.totalDeduction }}</template>
         </el-table-column>
-        <el-table-column label="实发金额" width="100">
+        <el-table-column label="实发" width="100">
           <template #default="{ row }">
             <span style="color: #409eff; font-weight: bold">¥{{ row.netPay }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="支付状态" width="100">
+        <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.actualPaymentDate ? 'success' : 'warning'">
               {{ row.actualPaymentDate ? '已发放' : '待发放' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="deadlineDate" label="预计最晚发放" width="120" />
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" @click="handleViewDetail(row)">查看电子工资条</el-button>
+            <el-button size="small" type="primary" link @click="handleViewDetail(row)">查看账单</el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 移动端卡片列表 -->
+      <div class="mobile-list visible-xs">
+        <div v-for="row in tableData" :key="row.salaryId" class="salary-card" @click="handleViewDetail(row)">
+          <div class="card-header-row">
+            <span class="p-name">{{ row.positionName }}</span>
+            <el-tag :type="row.actualPaymentDate ? 'success' : 'warning'" size="small">
+              {{ row.actualPaymentDate ? '已发放' : '待发放' }}
+            </el-tag>
+          </div>
+          <div class="card-cycle">{{ row.cycleStart }} ~ {{ row.cycleEnd }}</div>
+          <div class="card-money">
+            <div class="money-item">
+              <span class="m-label">实发金额</span>
+              <span class="m-val highlight">¥{{ row.netPay }}</span>
+            </div>
+            <div class="money-item">
+              <span class="m-label">应发</span>
+              <span class="m-val">¥{{ row.grossPay }}</span>
+            </div>
+            <div class="money-item">
+              <span class="m-label">扣除</span>
+              <span class="m-val">¥{{ row.totalDeduction }}</span>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="tableData.length === 0 && !loading" description="暂无记录" />
+      </div>
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
@@ -250,4 +286,76 @@ onMounted(() => { loadData() })
 .total-line { display: flex; justify-content: flex-end; font-size: 14px; margin-bottom: 5px; color: #666; }
 .net-pay { display: flex; justify-content: flex-end; font-size: 22px; font-weight: bold; color: #409eff; margin-top: 10px; }
 .status-tip { text-align: right; font-size: 12px; color: #999; margin-top: 10px; }
+
+/* 移动端卡片样式 */
+.salary-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.card-header-row .p-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: #303133;
+}
+.card-cycle {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 15px;
+}
+.card-money {
+  display: flex;
+  justify-content: space-between;
+  background: #fdfdfd;
+  padding: 10px;
+  border-radius: 8px;
+}
+.money-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.money-item .m-label {
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+.money-item .m-val {
+  font-size: 14px;
+  color: #606266;
+}
+.money-item .m-val.highlight {
+  color: #409eff;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .search-card :deep(.el-form-item) {
+    display: flex;
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+  .search-card :deep(.el-date-editor) {
+    width: 100% !important;
+  }
+  .money-grid {
+    grid-template-columns: 1fr;
+  }
+  .bill-header h2 {
+    font-size: 18px;
+  }
+  .net-pay {
+    font-size: 20px;
+  }
+}
 </style>

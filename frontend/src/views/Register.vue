@@ -13,7 +13,6 @@
       <template #header>
         <div class="card-header">
           <h2>账号注册</h2>
-          <p class="welcome-text">加入系统，探索更多</p>
         </div>
       </template>
       
@@ -320,13 +319,36 @@ const goToLogin = () => {
   box-shadow: 0 8px 16px rgba(118, 75, 162, 0.3);
 }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+@media (max-width: 768px) {
+  .system-title {
+    font-size: 26px;
+  }
+  .system-subtitle {
+    font-size: 14px;
+  }
+  .auth-card :deep(.el-card__header) {
+    padding: 24px 20px 10px;
+  }
+  .auth-card :deep(.el-card__body) {
+    padding: 10px 20px 24px;
+  }
+  .auth-layout {
+    padding: 20px 16px;
+  }
+  :deep(.el-form-item__label) {
+    width: auto !important;
+    float: none;
+    display: block;
+    text-align: left;
+    margin-bottom: 8px;
+  }
+  :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+  }
+  .el-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 }
 </style>

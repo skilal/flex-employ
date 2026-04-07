@@ -33,78 +33,59 @@
       </el-form>
     </el-card>
 
-    <!-- 考勤统计 -->
-    <el-row :gutter="20" style="margin-bottom: 20px;">
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月出勤" :value="statistics.normalDays">
-            <template #suffix>天</template>
+    <el-row :gutter="10" class="stat-row">
+      <el-col :xs="12" :sm="8" :md="4">
+        <el-card shadow="never">
+          <el-statistic title="出勤" :value="statistics.normalDays">
+            <template #suffix><span class="unit">天</span></template>
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月缺勤" :value="statistics.absentDays">
-            <template #suffix>天</template>
+      <el-col :xs="12" :sm="8" :md="4">
+        <el-card shadow="never">
+          <el-statistic title="缺勤" :value="statistics.absentDays" value-style="color: #E6A23C">
+            <template #suffix><span class="unit">天</span></template>
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月假日" :value="statistics.holidayDays">
-            <template #suffix>天</template>
+      <el-col :xs="12" :sm="8" :md="4">
+        <el-card shadow="never">
+          <el-statistic title="旷工" :value="statistics.absenteeismDays" value-style="color: #F56C6C">
+            <template #suffix><span class="unit">天</span></template>
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月旷工" :value="statistics.absenteeismDays" value-style="color: #F56C6C">
-            <template #suffix>天</template>
+      <el-col :xs="12" :sm="8" :md="4">
+        <el-card shadow="never">
+          <el-statistic title="迟到" :value="statistics.lateTimes">
+            <template #suffix><span class="unit">次</span></template>
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月迟到" :value="statistics.lateTimes">
-            <template #suffix>次</template>
+      <el-col :xs="12" :sm="8" :md="4">
+        <el-card shadow="never">
+          <el-statistic title="早退" :value="statistics.earlyTimes">
+            <template #suffix><span class="unit">次</span></template>
           </el-statistic>
         </el-card>
       </el-col>
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月早退" :value="statistics.earlyTimes">
-            <template #suffix>次</template>
-          </el-statistic>
-        </el-card>
-      </el-col>
-      <el-col :span="4">
-        <el-card>
-          <el-statistic title="本月请假" :value="statistics.leaveDays">
-            <template #suffix>天</template>
+      <el-col :xs="12" :sm="8" :md="4">
+        <el-card shadow="never">
+          <el-statistic title="请假" :value="statistics.leaveDays" value-style="color: #409EFF">
+            <template #suffix><span class="unit">天</span></template>
           </el-statistic>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 考勤记录 -->
-    <el-card>
-      <template #header>
-        <h3>考勤记录</h3>
-      </template>
-
-      <el-table :data="pagedData" border stripe v-loading="loading">
+    <div class="data-section">
+      <!-- 桌面端表格 -->
+      <el-table :data="pagedData" border stripe v-loading="loading" class="hidden-xs">
         <el-table-column prop="attendanceId" label="ID" width="80" />
         <el-table-column prop="attendanceDate" label="考勤日期" width="110" />
         <el-table-column label="所属岗位" width="140" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="pro-pos-name">{{ row.positionName || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="排班规则" min-width="170">
-          <template #default="{ row }">
-            <div class="pro-rule-text">
-              <el-icon><Calendar /></el-icon> {{ formatWorkingDays(row.workingDays) }}
-            </div>
           </template>
         </el-table-column>
         <el-table-column label="标准时段" width="130">
@@ -121,30 +102,57 @@
             <el-tag :type="getStatusType(row.attendanceStatus)">{{ row.attendanceStatus }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="计算工时" width="100">
+        <el-table-column label="合计" width="100">
           <template #default="{ row }">
             {{ calculateWorkHours(row) }}
           </template>
         </el-table-column>
       </el-table>
 
-      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+      <!-- 移动端卡片列表 -->
+      <div class="mobile-list visible-xs" v-loading="loading">
+        <div v-for="row in pagedData" :key="row.attendanceId" class="attendance-card">
+          <div class="card-top">
+            <span class="card-date">{{ row.attendanceDate }}</span>
+            <el-tag :type="getStatusType(row.attendanceStatus)" size="small">{{ row.attendanceStatus }}</el-tag>
+          </div>
+          <div class="card-body">
+            <div class="card-pos">{{ row.positionName || '未关联岗位' }}</div>
+            <div class="card-time-grid">
+              <div class="time-item">
+                <span class="label">签到</span>
+                <span class="val">{{ row.actualCheckIn || '--:--' }}</span>
+              </div>
+              <div class="time-item">
+                <span class="label">签退</span>
+                <span class="val">{{ row.actualCheckOut || '--:--' }}</span>
+              </div>
+              <div class="time-item">
+                <span class="label">标准</span>
+                <span class="val small">{{ formatTime(row.checkInTime) }}-{{ formatTime(row.checkOutTime) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="tableData.length === 0 && !loading" description="暂无记录" />
+      </div>
+
+      <div class="pagination-footer">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :total="total"
-          layout="total, prev, pager, next, jumper"
+          :layout="mobileLayout"
           @current-change="handlePageChange"
+          background
         />
       </div>
-
-      <el-empty v-if="tableData.length === 0 && !loading" description="暂无考勤记录" />
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { Calendar, Timer } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getMyAttendances } from '../../api/attendance'
@@ -278,6 +286,11 @@ const handleReset = () => {
   loadData()
 }
 
+// 移动端分页布局适配
+const mobileLayout = computed(() => {
+  return window.innerWidth < 768 ? 'prev, pager, next' : 'total, prev, pager, next, jumper'
+})
+
 // 便捷：快速跳转本月
 const handleQuickMonth = () => {
   const now = new Date()
@@ -296,28 +309,123 @@ onMounted(() => {
 
 <style scoped>
 .my-attendance {
-  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .search-card {
   margin-bottom: 20px;
 }
+
+.stat-row {
+  margin-bottom: 20px;
+}
+
+.stat-row :deep(.el-card__body) {
+  padding: 15px;
+}
+
+.unit {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 4px;
+}
+
+.data-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
 .pro-pos-name {
-  font-weight: 600;
-  color: #34495e;
+  font-weight: 500;
+  color: #303133;
 }
-.pro-rule-text {
-  color: #e67e22;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+
+/* 移动端列表 */
+.attendance-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.3s;
 }
-.pro-time-text {
-  color: #7f8c8d;
-  font-size: 13px;
+
+.attendance-card:active {
+  background: #f5f7fa;
+}
+
+.card-top {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #f0f0f0;
+}
+
+.card-date {
+  font-weight: bold;
+  color: #303133;
+}
+
+.card-pos {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 12px;
+}
+
+.card-time-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.time-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-item .label {
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 2px;
+}
+
+.time-item .val {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.time-item .val.small {
+  font-size: 12px;
+}
+
+.pagination-footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .my-attendance {
+    padding: 4px;
+  }
+  .search-card :deep(.el-form-item) {
+    display: flex;
+    margin-right: 0;
+    margin-bottom: 12px;
+  }
+  .search-card :deep(.el-date-editor) {
+    width: 100% !important;
+  }
+  .data-section {
+    padding: 12px;
+    background: transparent;
+    box-shadow: none;
+  }
 }
 </style>

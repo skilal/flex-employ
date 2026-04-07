@@ -1,61 +1,68 @@
 <template>
-  <div class="punch-clock-container">
-    <div class="glass-card">
-      <div class="header">
-        <h2>考勤打卡</h2>
-        <div class="position-info" v-if="position">
-          <div class="name">{{ position.positionName }}</div>
-          <div class="location">
-            <el-icon><Location /></el-icon>
-            {{ position.workLocation }}
-          </div>
+  <div class="punch-clock-wrapper">
+    <!-- 动态背景光点 -->
+    <div class="bg-blur-1"></div>
+    <div class="bg-blur-2"></div>
+    
+    <div class="glass-card main-card">
+      <div class="card-header">
+        <h2 class="title text-glow">现场核销打卡</h2>
+        <div class="status-badge" v-if="position">
+          <el-icon><Location /></el-icon>
+          <span>{{ position.workLocation }}</span>
         </div>
       </div>
 
-      <div class="timer-section">
-        <div class="current-date">{{ currentDate }}</div>
-        <div class="current-time">{{ currentTime }}</div>
+      <div class="position-info-box" v-if="position">
+        <div class="p-name">{{ position.positionName }}</div>
+        <div class="enterprise-name">{{ position.companyName || '关联机构' }}</div>
       </div>
 
-      <div class="info-grid" v-if="position">
-        <div class="info-item">
-          <span class="label">应签到</span>
-          <span class="value">{{ position.workStartTime || '未设置' }}</span>
+      <div class="timer-display">
+        <div class="date-text">{{ currentDate }}</div>
+        <div class="time-text glow-text">{{ currentTime }}</div>
+      </div>
+
+      <div class="attendance-window" v-if="position">
+        <div class="win-item border-right">
+          <span class="lab">签到窗口</span>
+          <span class="val">{{ position.workStartTime || '--:--' }}</span>
         </div>
-        <div class="info-item">
-          <span class="label">应签退</span>
-          <span class="value">{{ position.workEndTime || '未设置' }}</span>
+        <div class="win-item">
+          <span class="lab">签退窗口</span>
+          <span class="val">{{ position.workEndTime || '--:--' }}</span>
         </div>
       </div>
 
-      <div class="actions">
+      <div class="action-buttons">
         <el-button 
           type="primary" 
-          class="punch-btn check-in" 
+          class="punch-btn in-btn" 
           :loading="loading"
           @click="handlePunch('check-in')"
         >
-          <div class="btn-content">
-            <el-icon size="24"><Select /></el-icon>
-            <span>点击签到</span>
+          <div class="btn-inner">
+            <el-icon :size="20"><Select /></el-icon>
+            <span>准时签到</span>
           </div>
         </el-button>
 
         <el-button 
           type="success" 
-          class="punch-btn check-out" 
+          class="punch-btn out-btn" 
           :loading="loading"
           @click="handlePunch('check-out')"
         >
-          <div class="btn-content">
-            <el-icon size="24"><CircleCheck /></el-icon>
-            <span>点击签退</span>
+          <div class="btn-inner">
+            <el-icon :size="20"><CircleCheck /></el-icon>
+            <span>确认下班</span>
           </div>
         </el-button>
       </div>
 
-      <div class="footer-tip">
-        💡 请确保您已到达工作现场
+      <div class="bottom-tips">
+        <el-icon><InfoFilled /></el-icon>
+        <span>打卡前请确认定位权限已开启</span>
       </div>
     </div>
   </div>
@@ -65,7 +72,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Location, Select, CircleCheck } from '@element-plus/icons-vue'
+import { Location, Select, CircleCheck, InfoFilled } from '@element-plus/icons-vue'
 import { getPositionById } from '../../api/position'
 import { qrPunch } from '../../api/attendance'
 
@@ -135,97 +142,153 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.punch-clock-container {
+.punch-clock-wrapper {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0f172a;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
+/* 动态背景点 */
+.bg-blur-1 {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+  filter: blur(60px);
+  animation: pulse 8s infinite alternate;
+}
+.bg-blur-2 {
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+  filter: blur(60px);
+  animation: pulse 12s infinite alternate-reverse;
+}
+
+.main-card {
   width: 100%;
-  max-width: 400px;
-  padding: 32px 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  text-align: center;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  padding: 40px 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 1;
 }
 
-.header h2 {
-  margin: 0;
-  color: #2d3748;
-  font-size: 24px;
+.title {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+  letter-spacing: 1px;
 }
 
-.position-info {
-  margin-top: 12px;
+.text-glow {
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
-.position-info .name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #4a5568;
-}
-
-.position-info .location {
-  font-size: 14px;
-  color: #718096;
-  display: flex;
+.status-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #94a3b8;
+  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.timer-section {
-  margin: 40px 0;
+.position-info-box {
+  margin: 30px 0;
 }
 
-.current-date {
+.position-info-box .p-name {
+  color: #f1f5f9;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.enterprise-name {
+  color: #64748b;
   font-size: 14px;
-  color: #718096;
-  margin-bottom: 8px;
 }
 
-.current-time {
-  font-size: 48px;
-  font-weight: 700;
-  color: #2d3748;
-  font-family: 'Courier New', Courier, monospace;
+.timer-display {
+  margin: 40px 0;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+.date-text {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.time-text {
+  color: #fff;
+  font-size: 56px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  letter-spacing: -2px;
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(64, 158, 255, 0.4);
+}
+
+.attendance-window {
+  display: flex;
+  justify-content: space-around;
   margin-bottom: 40px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+  border-radius: 16px;
 }
 
-.info-item {
-  background: #f7fafc;
-  padding: 12px;
-  border-radius: 12px;
+.win-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
-.info-item .label {
-  font-size: 12px;
-  color: #a0aec0;
-  margin-bottom: 4px;
+.border-right {
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.info-item .value {
-  font-size: 16px;
+.win-item .lab {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.win-item .val {
+  font-size: 18px;
+  color: #f1f5f9;
   font-weight: 600;
-  color: #4a5568;
 }
 
-.actions {
+.action-buttons {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -233,25 +296,52 @@ onBeforeUnmount(() => {
 
 .punch-btn {
   height: 64px;
-  border-radius: 16px;
-  font-size: 18px;
-  font-weight: 600;
+  border-radius: 18px;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-content {
+.in-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+}
+
+.out-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+}
+
+.btn-inner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
 }
 
-.footer-tip {
+.bottom-tips {
   margin-top: 32px;
-  font-size: 13px;
-  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
 }
 
-/* 适配移动端点击效果 */
+@keyframes pulse {
+  from { transform: scale(1); opacity: 0.5; }
+  to { transform: scale(1.1); opacity: 0.8; }
+}
+
 .punch-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+@media (max-width: 480px) {
+  .time-text {
+    font-size: 48px;
+  }
 }
 </style>

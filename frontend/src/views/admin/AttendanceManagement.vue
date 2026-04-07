@@ -2,59 +2,43 @@
   <div class="attendance-management">
     <!-- 搜索栏 -->
     <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="员工名称">
-          <el-input v-model="searchForm.userName" placeholder="请输入员工名称" clearable @keyup.enter="handleSearch" style="width: 180px" />
-        </el-form-item>
-        <el-form-item label="岗位名称">
-          <el-input v-model="searchForm.positionName" placeholder="请输入岗位名称" clearable @keyup.enter="handleSearch" style="width: 180px" />
-        </el-form-item>
-        <el-form-item label="考勤日期">
-          <el-date-picker
-            v-model="searchForm.attendanceDate"
-            type="date"
-            placeholder="考勤日期"
-            value-format="YYYY-MM-DD"
-            clearable
-            @change="handleSearch"
-            @clear="handleSearch"
-            style="width: 150px"
-          />
-        </el-form-item>
-        <el-form-item label="考勤状态">
-          <el-select 
-            v-model="searchForm.attendanceStatus" 
-            placeholder="考勤状态" 
-            clearable
-            @change="handleSearch"
-            @clear="handleSearch"
-            style="width: 120px"
-          >
-            <el-option label="正常" value="正常" />
-            <el-option label="迟到" value="迟到" />
-            <el-option label="早退" value="早退" />
-            <el-option label="迟到且早退" value="迟到且早退" />
-            <el-option label="缺勤" value="缺勤" />
-            <el-option label="旷工" value="旷工" />
-            <el-option label="请假" value="请假" />
-            <el-option label="请假" value="请假" />
-            <el-option label="假日" value="假日" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="计费模式">
-          <el-radio-group v-model="searchForm.pieceworkFilter" @change="handleSearch" size="small">
-            <el-radio-button label="all">全部</el-radio-button>
-            <el-radio-button label="timed">计时</el-radio-button>
-            <el-radio-button label="piece">计件</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="searchForm.pieceworkFilter === 'piece'" label="件数状态">
-          <el-checkbox v-model="searchForm.unrecordedOnly" @change="handleSearch">仅看未录入</el-checkbox>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
+      <el-form :model="searchForm" label-width="80px">
+        <el-row :gutter="10">
+          <el-col :xs="24" :sm="12" :md="6">
+            <el-form-item label="员工名称">
+              <el-input v-model="searchForm.userName" placeholder="员工名称" clearable @keyup.enter="handleSearch" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6">
+            <el-form-item label="岗位名称">
+              <el-input v-model="searchForm.positionName" placeholder="岗位名称" clearable @keyup.enter="handleSearch" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="12" :md="4">
+            <el-form-item label="考勤日期">
+              <el-date-picker
+                v-model="searchForm.attendanceDate"
+                type="date"
+                placeholder="日期"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+                @change="handleSearch"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="12" :md="4">
+            <el-form-item label="计费模式">
+              <el-select v-model="searchForm.pieceworkFilter" placeholder="全部" @change="handleSearch" style="width: 100%">
+                <el-option label="全部" value="all" />
+                <el-option label="计时" value="timed" />
+                <el-option label="计件" value="piece" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="4" class="filter-btns">
+            <el-button type="primary" @click="handleSearch" style="width: 100%">查询</el-button>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
 
@@ -66,71 +50,76 @@
       </el-button>
     </div>
 
-    <!-- 表格 -->
+    <!-- 内容区域 -->
     <el-card>
-      <el-table :data="tableData" border stripe v-loading="loading">
+      <!-- 桌面端表格 -->
+      <el-table :data="tableData" border stripe v-loading="loading" class="hidden-xs">
         <el-table-column prop="attendanceId" label="ID" width="70" />
-        <el-table-column label="员工信息" width="130">
+        <el-table-column label="员工/岗位" min-width="180">
           <template #default="{ row }">
             <div style="font-weight: bold">{{ row.userName || '-' }}</div>
-            <div style="color: #909399; font-size: 11px;">ID: {{ row.onDutyWorkerId }}</div>
+            <div style="color: #909399; font-size: 11px;">{{ row.positionName || '-' }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="单位/岗位" min-width="150" show-overflow-tooltip>
+        <el-table-column prop="attendanceDate" label="日期" width="105" />
+        <el-table-column label="打卡明细" width="160">
           <template #default="{ row }">
-            <div>{{ row.positionName || '-' }}</div>
-            <div style="color: #909399; font-size: 11px;">PID: {{ row.positionId }}</div>
+            <div style="font-size: 11px;">入：{{ row.actualCheckIn || '--' }}</div>
+            <div style="font-size: 11px;">出：{{ row.actualCheckOut || '--' }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="attendanceDate" label="考勤日期" width="105" />
-        <el-table-column label="标准时段" width="110">
+        <el-table-column label="计件状态" width="110">
           <template #default="{ row }">
-            <div style="font-size: 12px; color: #606266">
-              {{ formatTime(row.checkInTime) }}
-            </div>
-            <div style="font-size: 12px; color: #606266">
-              {{ formatTime(row.checkOutTime) }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="实际记录" width="130">
-          <template #default="{ row }">
-            <div style="font-size: 12px; color: #409EFF">
-              <el-icon style="vertical-align: middle"><Timer /></el-icon> {{ formatTime(row.actualCheckIn) }}
-            </div>
-            <div style="font-size: 12px; color: #409EFF">
-              <el-icon style="vertical-align: middle"><Timer /></el-icon> {{ formatTime(row.actualCheckOut) }}
-            </div>
+            <template v-if="row.isPieceWork === 1">
+              <el-tag v-if="row.pieceCount === null" type="warning" size="small">待录入</el-tag>
+              <span v-else style="font-weight: bold; color: #409EFF;">{{ row.pieceCount }} 件</span>
+            </template>
+            <span v-else style="color: #C0C4CC;">计时</span>
           </template>
         </el-table-column>
         <el-table-column prop="attendanceStatus" label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.attendanceStatus)" size="small">
-              {{ row.attendanceStatus }}
-            </el-tag>
+            <el-tag :type="getStatusType(row.attendanceStatus)" size="small">{{ row.attendanceStatus }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="完成件数" width="110">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <template v-if="row.isPieceWork === 1">
-              <el-tag v-if="row.pieceCount === null || row.pieceCount === undefined" type="warning" size="small">待录入</el-tag>
-              <span v-else style="font-weight: bold; color: #409EFF;">{{ row.pieceCount }} 件</span>
-            </template>
-            <span v-else style="color: #C0C4CC;">--</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button 
-              v-if="row.isPieceWork === 1" 
-              size="small" link type="warning" 
-              @click="handleOpenPieceInput(row)"
-            >录入件数</el-button>
-            <el-button size="small" link type="danger" @click="handleDelete(row)">删除</el-button>
+            <div class="row-actions">
+              <el-button size="small" type="primary" @click="handleEdit(row)">修改</el-button>
+              <el-button v-if="row.isPieceWork === 1" size="small" type="warning" @click="handleOpenPieceInput(row)">报工</el-button>
+              <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 移动端卡片列表 -->
+      <div class="mobile-list visible-xs">
+        <div v-for="row in tableData" :key="row.attendanceId" class="record-card">
+          <div class="card-top">
+            <div class="u-info">
+              <div class="u-name">{{ row.userName }}</div>
+              <div class="u-meta">{{ row.attendanceDate }} · {{ row.attendanceStatus }}</div>
+            </div>
+            <el-tag v-if="row.isPieceWork === 1" :type="row.pieceCount === null ? 'warning' : 'success'" size="small">
+              {{ row.pieceCount === null ? '待报工' : row.pieceCount + ' 件' }}
+            </el-tag>
+          </div>
+          <div class="card-mid">
+            <div class="p-name">{{ row.positionName }}</div>
+            <div class="time-strip">
+              <span>{{ row.actualCheckIn || '未签到' }}</span>
+              <el-icon><ArrowRight /></el-icon>
+              <span>{{ row.actualCheckOut || '未签退' }}</span>
+            </div>
+          </div>
+          <div class="card-btns">
+            <el-button v-if="row.isPieceWork === 1" size="small" type="warning" @click="handleOpenPieceInput(row)">录入件数</el-button>
+            <el-button size="small" type="primary" plain @click="handleEdit(row)">查看变更</el-button>
+          </div>
+        </div>
+        <el-empty v-if="tableData.length === 0 && !loading" description="暂无考勤数据" />
+      </div>
 
       <el-pagination
         v-model:current-page="currentPage"
@@ -147,7 +136,8 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="600px"
+      width="90%"
+      style="max-width: 600px"
       @close="handleDialogClose"
     >
       <el-form
@@ -286,7 +276,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Timer, Plus } from '@element-plus/icons-vue'
+import { Timer, Plus, ArrowRight } from '@element-plus/icons-vue'
 import { getAttendances, createAttendance, updateAttendance, deleteAttendance, updatePieceCount } from '../../api/attendance'
 import { getWorkers } from '../../api/worker'
 
@@ -569,15 +559,66 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.attendance-management {
-  width: 100%;
+.attendance-management { width: 100%; box-sizing: border-box; }
+.search-card { margin-bottom: 20px; }
+.action-buttons { margin-bottom: 16px; display: flex; gap: 10px; }
+
+/* 移动端记录卡片 */
+.record-card {
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.u-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: #303133;
+}
+.u-meta {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
+}
+.card-mid {
+  padding: 10px 0;
+}
+.p-name {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+}
+.time-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #409eff;
+  background: #f0f7ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+.card-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #f0f0f0;
 }
 
-.search-card {
-  margin-bottom: 20px;
-}
-
-.action-buttons {
-  margin-bottom: 20px;
+@media (max-width: 768px) {
+  .search-card :deep(.el-form-item) {
+    margin: 0 0 12px 0;
+    display: flex;
+  }
 }
 </style>

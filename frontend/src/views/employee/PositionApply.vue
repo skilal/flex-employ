@@ -2,39 +2,43 @@
   <div class="position-apply">
     <!-- 筛选栏 -->
     <el-card class="filter-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="岗位名称/职位" clearable style="width: 180px" @keyup.enter="handleFilter" />
-        </el-form-item>
-        <el-form-item label="工作地点">
-          <el-input v-model="searchForm.workLocation" placeholder="城市/地区" clearable style="width: 140px" @keyup.enter="handleFilter" />
-        </el-form-item>
-        <el-form-item label="用工类型">
-          <el-select v-model="searchForm.employmentType" placeholder="全部类型" clearable style="width: 130px" @change="handleFilter">
-            <el-option label="全日制用工" value="全日制用工" />
-            <el-option label="非全日制用工" value="非全日制用工" />
-            <el-option label="劳务派遣" value="劳务派遣" />
-            <el-option label="实习" value="实习" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="结算周期">
-          <el-select v-model="searchForm.payCycle" placeholder="全部周期" clearable style="width: 110px" @change="handleFilter">
-            <el-option label="日结" value="日结" />
-            <el-option label="周结" value="周结" />
-            <el-option label="15日结" value="15日结" />
-            <el-option label="月结" value="月结" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="计费方式">
-          <el-select v-model="searchForm.billingMethod" placeholder="全部" clearable style="width: 100px" @change="handleFilter">
-            <el-option label="按小时" :value="1" />
-            <el-option label="按天" :value="2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleFilter">搜索职位</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
+      <el-form :model="searchForm" label-width="80px">
+        <el-row :gutter="10">
+          <el-col :xs="24" :sm="12" :md="6">
+            <el-form-item label="关键词">
+              <el-input v-model="searchForm.keyword" placeholder="岗位名称/职位" clearable @keyup.enter="handleFilter" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="6">
+            <el-form-item label="工作地点">
+              <el-input v-model="searchForm.workLocation" placeholder="城市/地区" clearable @keyup.enter="handleFilter" />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="8" :md="4">
+            <el-form-item label="用工类型">
+              <el-select v-model="searchForm.employmentType" placeholder="全部" clearable @change="handleFilter">
+                <el-option label="全日制" value="全日制用工" />
+                <el-option label="非全日制" value="非全日制用工" />
+                <el-option label="劳务派遣" value="劳务派遣" />
+                <el-option label="实习" value="实习" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="12" :sm="8" :md="4">
+            <el-form-item label="结算周期">
+              <el-select v-model="searchForm.payCycle" placeholder="全部" clearable @change="handleFilter">
+                <el-option label="日结" value="日结" />
+                <el-option label="周结" value="周结" />
+                <el-option label="月结" value="月结" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="8" :md="4">
+            <div class="filter-actions">
+              <el-button type="primary" @click="handleFilter" style="width: 100%">搜索</el-button>
+            </div>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
 
@@ -85,7 +89,7 @@
     </div>
 
     <!-- 申请提交对话框 -->
-    <el-dialog v-model="submitVisible" title="提交申请" width="500px">
+    <el-dialog v-model="submitVisible" title="提交申请" width="90%" style="max-width: 500px">
       <el-form :model="submitForm" label-width="100px">
         <el-form-item label="申请岗位">{{ selectedPosition?.positionName }}</el-form-item>
         <el-form-item label="简历文件">
