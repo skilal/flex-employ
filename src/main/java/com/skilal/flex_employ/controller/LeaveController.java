@@ -7,6 +7,7 @@ import com.skilal.flex_employ.entity.LeaveRequest;
 import com.skilal.flex_employ.entity.OnDutyWorker;
 import com.skilal.flex_employ.mapper.LeaveRequestMapper;
 import com.skilal.flex_employ.mapper.OnDutyWorkerMapper;
+import com.skilal.flex_employ.mapper.AttendanceMapper;
 import com.skilal.flex_employ.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,9 @@ public class LeaveController {
 
     @Autowired
     private OnDutyWorkerMapper onDutyWorkerMapper;
+
+    @Autowired
+    private AttendanceMapper attendanceMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -90,6 +94,40 @@ public class LeaveController {
         String status = data.get("status");
         int result = leaveRequestMapper.updateStatus(id, status);
         if (result > 0) {
+            if ("已通过".equals(status) || "同意".equals(status)) {
+                // 1. 获取请假申请信息
+                LeaveRequest leave = leaveRequestMapper.findById(id);
+                if (leave != null) {
+                    // 2. 获取对应的在岗记录
+                    OnDutyWorker worker = onDutyWorkerMapper.findByUserIdAndPositionId(leave.getUserId(), leave.getPositionId());
+                    if (worker != null) {
+                        // 3. 遍历请假期间的每一天
+                        java.time.LocalDate current = leave.getStartDate();
+                        while (!current.isAfter(leave.getEndDate())) {
+                            // 查找该天的考勤记录
+                            com.skilal.flex_employ.entity.Attendance attendance = attendanceMapper.findByWorkerAndDate(worker.getOnDutyWorkerId(), current);
+                            if (attendance != null) {
+                                // 如果记录存在，更新状态为“请假”
+                                if (!"请假".equals(attendance.getAttendanceStatus())) {
+                                    attendance.setAttendanceStatus("请假");
+                                    attendanceMapper.update(attendance);
+                                }
+                            } else {
+                                // 如果不存在，如果是当日或之前的记录，直接补一条请假记录以免前台不显示
+                                if (!current.isAfter(java.time.LocalDate.now())) {
+                                    com.skilal.flex_employ.entity.Attendance newAttendance = new com.skilal.flex_employ.entity.Attendance();
+                                    newAttendance.setOnDutyWorkerId(worker.getOnDutyWorkerId());
+                                    newAttendance.setPositionId(worker.getPositionId());
+                                    newAttendance.setAttendanceDate(current);
+                                    newAttendance.setAttendanceStatus("请假");
+                                    attendanceMapper.insert(newAttendance);
+                                }
+                            }
+                            current = current.plusDays(1);
+                        }
+                    }
+                }
+            }
             return Result.success("审批成功");
         }
         return Result.error("审批失败");

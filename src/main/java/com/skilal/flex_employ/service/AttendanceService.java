@@ -154,7 +154,7 @@ public class AttendanceService {
     }
 
     /**
-     * 为员工补全力考勤记录（从入职至今）
+     * 为员工补全考勤记录（从入职至今）
      */
     public void fillMissingAttendance(OnDutyWorker worker) {
         if (worker == null || worker.getOnDutyWorkerId() == null)
