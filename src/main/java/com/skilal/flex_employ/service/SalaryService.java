@@ -121,14 +121,14 @@ public class SalaryService {
 
         BigDecimal effectiveDays = new BigDecimal(qualifiedAttendanceDays + qualifiedLeaveDays);
 
-        // 4. 计算各项金额
+        // 5. 计算各项金额
         PaySlip slip = new PaySlip();
         slip.setOnDutyWorkerId(worker.getOnDutyWorkerId());
         slip.setCycleStart(cycleStart);
         slip.setCycleEnd(cycleEnd);
         slip.setDeadlineDate(calculateDeadlineDate(worker.getOnDutyWorkerId(), cycleEnd));
 
-        // 5. 基础工资计算
+        // 6. 基础工资计算
         BigDecimal basePay = BigDecimal.ZERO;
 
         if (config.getIsPieceWork() != null && config.getIsPieceWork() == 1) {
@@ -155,7 +155,7 @@ public class SalaryService {
         slip.setBasePay(basePay);
 
         // 考勤扣款
-        // 4. 考勤扣款核算
+        // 7. 考勤扣款核算
         BigDecimal lateDeduction = BigDecimal.ZERO;
         BigDecimal earlyDeduction = BigDecimal.ZERO;
         BigDecimal absentDeduction = BigDecimal.ZERO;
@@ -192,7 +192,7 @@ public class SalaryService {
         slip.setAbsentDeduction(absentDeduction);
         slip.setAbsenceDeduction(absenceDeduction);
 
-        // 请假扣款 (病假/事假)
+        // 8.请假扣款 (病假/事假)
         BigDecimal leaveDeductionTotal = BigDecimal.ZERO;
         // 确定日薪基数：按天计费即为baseRate；按小时计费则为 每日标准工时 * baseRate
         BigDecimal dailySalaryBase = config.getBaseRate();
@@ -213,7 +213,7 @@ public class SalaryService {
         }
         slip.setLeaveDeduction(leaveDeductionTotal.setScale(2, RoundingMode.HALF_UP));
 
-        // 5. 加班费计算
+        // 9. 加班费计算
         BigDecimal totalOvertimePay = BigDecimal.ZERO;
         if (config.getHasOvertimePay() != null && config.getHasOvertimePay() == 1) {
             for (Attendance a : attendances) {
@@ -222,7 +222,7 @@ public class SalaryService {
         }
         slip.setOvertimePay(totalOvertimePay.setScale(2, RoundingMode.HALF_UP));
 
-        // 6. 绩效、补贴与提成 (Income)
+        // 10. 绩效、补贴与提成 (Income)
         BigDecimal performancePay = config.getPerformanceBonus() != null ? config.getPerformanceBonus()
                 : BigDecimal.ZERO;
         BigDecimal fixedBonus = config.getBonus() != null ? config.getBonus() : BigDecimal.ZERO;
@@ -233,14 +233,14 @@ public class SalaryService {
         slip.setBonusPay(performancePay.add(fixedBonus).add(commission));
         slip.setAllowance(allowance);
 
-        // 6. 应发工资总额 (Gross Pay) - 计算社保基数的前置条件
+        // 11. 应发工资总额 (Gross Pay) - 计算社保基数的前置条件
         BigDecimal grossPay = (basePay != null ? basePay : BigDecimal.ZERO)
                 .add(slip.getBonusPay() != null ? slip.getBonusPay() : BigDecimal.ZERO)
                 .add(slip.getOvertimePay() != null ? slip.getOvertimePay() : BigDecimal.ZERO)
                 .add(slip.getAllowance() != null ? slip.getAllowance() : BigDecimal.ZERO);
         slip.setGrossPay(grossPay);
 
-        // 7. 社保基数确定逻辑
+        // 12. 社保基数确定逻辑
         BigDecimal socialBase = worker.getSocialSecurityBase();
         boolean isFirstMonth = (socialBase == null);
         if (isFirstMonth) {
@@ -271,7 +271,7 @@ public class SalaryService {
             workerMapper.update(worker);
         }
 
-        // 8. 五险一金 (Deductions) - 使用核定后的社保基数
+        // 13. 五险一金 (Deductions) - 使用核定后的社保基数
         slip.setPensionDeduction(
                 socialBase.multiply(config.getPensionRate() != null ? config.getPensionRate() : BigDecimal.ZERO)
                         .setScale(2, RoundingMode.HALF_UP));
@@ -300,7 +300,7 @@ public class SalaryService {
                 .add(slip.getAbsenceDeduction())
                 .add(slip.getLeaveDeduction());
 
-        // 9. 个人所得税 (PIT) 核算 - 累计预扣预缴法
+        // 14. 个人所得税 (PIT) 核算 - 累计预扣预缴法
         // 考勤扣款合计 (这些不应计入纳税基数)
         BigDecimal attendanceDeductionTotal = slip.getLateDeduction()
                 .add(slip.getEarlyLeaveDeduction())
